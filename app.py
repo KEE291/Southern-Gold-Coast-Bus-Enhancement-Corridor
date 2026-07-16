@@ -82,6 +82,10 @@ app.layout = html.Div([
 
 
 @app.callback(
+    Output("kpi-total", "children"),
+    Output("kpi-busiest-route", "children"),
+    Output("kpi-busiest-stop", "children"),
+    Output("kpi-avg-daily", "children"),
     Output("map-stops", "figure"),
     Output("top-stops", "figure"),
     Output("boarding-vs-alighting", "figure"),
@@ -127,7 +131,23 @@ def update_charts(selected_routes, selected_dirs, start_date, end_date):
     dir_sum = dff.groupby(["route_id","direction"], as_index=False).agg({"passengers":"sum"})
     fig_dir = px.bar(dir_sum, x="route_id", y="passengers", color="direction", barmode="group", title="Direction Analysis by Route")
 
-    return fig_map, fig_top_stops, fig_ba, fig_routes, fig_dir
+    # KPIs
+    total_passengers = int(dff['passengers'].sum()) if not dff.empty else 0
+    busiest_route = None
+    if not routes_sum.empty:
+        busiest_route = f"Route {routes_sum.iloc[0]['route_id']} ({int(routes_sum.iloc[0]['passengers'])} pax)"
+    busiest_stop = None
+    if not top_stops.empty:
+        busiest_stop = f"{top_stops.iloc[0]['stop_name']} ({int(top_stops.iloc[0]['avg_daily'])} avg/day)"
+    days = (dff["date"].max() - dff["date"].min()).days + 1 if not dff.empty else 1
+    avg_daily_overall = round(dff['passengers'].sum()/max(days,1),1) if not dff.empty else 0
+
+    kpi_total = html.Div([html.H4("Total Passengers"), html.Div(f"{total_passengers:,}")])
+    kpi_route = html.Div([html.H4("Busiest Route"), html.Div(busiest_route or "N/A")])
+    kpi_stop = html.Div([html.H4("Top Stop (avg/day)"), html.Div(busiest_stop or "N/A")])
+    kpi_avg = html.Div([html.H4("Avg Daily Passengers"), html.Div(f"{avg_daily_overall}")])
+
+    return kpi_total, kpi_route, kpi_stop, kpi_avg, fig_map, fig_top_stops, fig_ba, fig_routes, fig_dir
 
 
 if __name__ == "__main__":
