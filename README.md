@@ -24,6 +24,7 @@ Notes
 
 - The dashboard now loads the provided `IR-1230 TMR South Coast with data analysis for Southern Gold Coast Bus Enhancements*.csv` files for March 2026 ridership and uses the `Route's Stop Order` CSV for stop sequences in the Routes tab.
 - If you want stop map markers, add `latitude` and `longitude` columns to the ridership file or provide a matching coordinates dataset.
+- The `assets/260518-gold-coast-network-map.pdf` network map is embedded in the Dashboard's Network Map tab.
 - The filters are bound to the actual dataset date range, so the Date Range control will reflect the loaded March 2026 data.
 - If you need to inspect the Excel route analysis workbook, install `openpyxl` in the virtual environment first:
 
