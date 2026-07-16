@@ -1,7 +1,6 @@
 import pandas as pd
-from dash import Dash, dcc, html, Input, Output
+from dash import Dash, dcc, html, Input, Output, dash_table
 import dash_bootstrap_components as dbc
-import dash_table
 import plotly.express as px
 import glob
 import os
@@ -97,8 +96,12 @@ def empty_figure(title='No data available'):
     return fig
 
 
-def make_kpi(title, value):
-    return dbc.Card(dbc.CardBody([html.Div(title, className='text-muted'), html.H3(value)]), className='h-100')
+def make_kpi(title, value='', id=None):
+    return dbc.Card(
+        dbc.CardBody([html.Div(title, className='text-muted'), html.H3(value)]),
+        className='h-100',
+        id=id,
+    )
 
 
 def build_tab_content(tab_id, dff, has_geo):
