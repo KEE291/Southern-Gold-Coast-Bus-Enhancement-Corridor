@@ -107,11 +107,15 @@ app.layout = html.Div([
     Output("kpi-busiest-route", "children"),
     Output("kpi-busiest-stop", "children"),
     Output("kpi-avg-daily", "children"),
+    Output("kpi-weekday", "children"),
+    Output("kpi-weekend", "children"),
     Output("map-stops", "figure"),
+    Output("no-coord-stops", "figure"),
     Output("top-stops", "figure"),
     Output("boarding-vs-alighting", "figure"),
     Output("top-routes", "figure"),
     Output("direction-analysis", "figure"),
+    Output("heatmap-time", "figure"),
     Input("route-filter", "value"),
     Input("direction-filter", "value"),
     Input("date-range", "start_date"),
@@ -131,6 +135,14 @@ def update_charts(selected_routes, selected_dirs, start_date, end_date):
     fig_map = px.scatter_mapbox(stops, lat="latitude", lon="longitude", size="passengers", hover_name="stop_name",
                                 color_continuous_scale=px.colors.cyclical.IceFire, size_max=20, zoom=11)
     fig_map.update_layout(mapbox_style="open-street-map", margin=dict(l=0,r=0,t=30,b=0))
+
+    # Stops without coordinates
+    no_coord = dff[dff['latitude'].isna() | dff['longitude'].isna()]
+    if not no_coord.empty:
+        no_coord_grp = no_coord.groupby(['stop_id','stop_name'], as_index=False).agg({'passengers':'sum'})
+        fig_nocoord = px.bar(no_coord_grp.sort_values('passengers', ascending=False).head(20), x='passengers', y='stop_name', orientation='h', title='Top Stops Without Coordinates')
+    else:
+        fig_nocoord = px.bar(pd.DataFrame({'stop_name':[], 'passengers':[]}), x='passengers', y='stop_name', title='Top Stops Without Coordinates')
 
     # Top stops by avg daily passengers
     days = (dff["date"].max() - dff["date"].min()).days + 1
@@ -152,6 +164,31 @@ def update_charts(selected_routes, selected_dirs, start_date, end_date):
     dir_sum = dff.groupby(["route_id","direction"], as_index=False).agg({"passengers":"sum"})
     fig_dir = px.bar(dir_sum, x="route_id", y="passengers", color="direction", barmode="group", title="Direction Analysis by Route")
 
+    # Time-of-day heatmap (hour vs weekday)
+    # derive hour column if possible
+    if 'hour' not in dff.columns:
+        if dff['date'].notna().any():
+            dff['hour'] = dff['date'].dt.hour.fillna(0).astype(int)
+        else:
+            # fallback: try columns that contain 'time'
+            time_cols = [c for c in dff.columns if 'time' in c.lower()]
+            if time_cols:
+                dff['hour'] = pd.to_datetime(dff[time_cols[0]], errors='coerce').dt.hour.fillna(0).astype(int)
+            else:
+                dff['hour'] = 0
+
+    if dff['date'].notna().any():
+        dff['weekday'] = dff['date'].dt.day_name()
+    else:
+        dff['weekday'] = 'Unknown'
+
+    heat_pivot = dff.groupby(['weekday','hour'], as_index=False).agg({'passengers':'sum'})
+    # order weekdays
+    weekdays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday','Unknown']
+    heat_pivot['weekday'] = pd.Categorical(heat_pivot['weekday'], categories=weekdays, ordered=True)
+    heat = heat_pivot.pivot_table(index='weekday', columns='hour', values='passengers', fill_value=0)
+    fig_heat = px.imshow(heat.reindex(weekdays).fillna(0), aspect='auto', labels=dict(x='Hour', y='Weekday', color='Passengers'), title='Passengers by Weekday and Hour')
+
     # KPIs
     total_passengers = int(dff['passengers'].sum()) if not dff.empty else 0
     busiest_route = None
@@ -162,13 +199,24 @@ def update_charts(selected_routes, selected_dirs, start_date, end_date):
         busiest_stop = f"{top_stops.iloc[0]['stop_name']} ({int(top_stops.iloc[0]['avg_daily'])} avg/day)"
     days = (dff["date"].max() - dff["date"].min()).days + 1 if not dff.empty else 1
     avg_daily_overall = round(dff['passengers'].sum()/max(days,1),1) if not dff.empty else 0
-
     kpi_total = html.Div([html.H4("Total Passengers"), html.Div(f"{total_passengers:,}")])
     kpi_route = html.Div([html.H4("Busiest Route"), html.Div(busiest_route or "N/A")])
     kpi_stop = html.Div([html.H4("Top Stop (avg/day)"), html.Div(busiest_stop or "N/A")])
     kpi_avg = html.Div([html.H4("Avg Daily Passengers"), html.Div(f"{avg_daily_overall}")])
 
-    return kpi_total, kpi_route, kpi_stop, kpi_avg, fig_map, fig_top_stops, fig_ba, fig_routes, fig_dir
+    # Weekday/weekend KPIs
+    if dff['date'].notna().any():
+        weekday_mask = dff['date'].dt.dayofweek < 5
+        weekday_total = int(dff.loc[weekday_mask, 'passengers'].sum())
+        weekend_total = int(dff.loc[~weekday_mask, 'passengers'].sum())
+    else:
+        weekday_total = 0
+        weekend_total = int(dff['passengers'].sum())
+    pct_weekend = round(100 * weekend_total / max(1, weekday_total + weekend_total), 1)
+    kpi_weekday = html.Div([html.H4("Weekday Passengers"), html.Div(f"{weekday_total:,}")])
+    kpi_weekend = html.Div([html.H4("Weekend Passengers"), html.Div(f"{weekend_total:,} ({pct_weekend}% of total)")])
+
+    return kpi_total, kpi_route, kpi_stop, kpi_avg, kpi_weekday, kpi_weekend, fig_map, fig_nocoord, fig_top_stops, fig_ba, fig_routes, fig_dir, fig_heat
 
 
 if __name__ == "__main__":
