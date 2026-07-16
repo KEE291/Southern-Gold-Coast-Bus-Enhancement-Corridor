@@ -468,6 +468,19 @@ def build_tab_content(tab_id, dff, route_order, has_geo):
     ])
 
 
+ROOT_DIR = os.path.dirname(__file__)
+ASSET_MAP_DIR = os.path.join(ROOT_DIR, 'assets')
+route_map_files = {}
+for asset_name in sorted(os.listdir(ASSET_MAP_DIR)):
+    if asset_name.lower().endswith('.pdf'):
+        for route_num in set(re.findall(r'\d+', asset_name)):
+            route_map_files.setdefault(route_num, asset_name)
+
+def get_route_map_asset(route_id):
+    route_id = str(route_id).strip()
+    return route_map_files.get(route_id)
+
+
 df, route_order = load_data()
 all_routes = sorted(df.loc[df['route_id'].astype(str).str.strip() != '', 'route_id'].dropna().unique())
 if not all_routes:
@@ -797,7 +810,7 @@ def update_route_card(click_data, selected_routes, selected_dirs, start_date, en
             dbc.CardBody('Click a route bar in the chart to explore route-level stop order, top stops and direction load.'),
         ], className='shadow-sm')
 
-    route_id = click_data['points'][0]['x']
+    route_id = str(click_data['points'][0]['x'])
     route_data = dff[dff['route_id'] == route_id]
     if route_data.empty:
         return dbc.Card([
@@ -807,26 +820,81 @@ def update_route_card(click_data, selected_routes, selected_dirs, start_date, en
 
     route_total = int(route_data['passengers'].sum())
     route_avg = round(route_total / safe_days(route_data), 1)
-    route_dirs = ', '.join(sorted(route_data['direction'].unique()))
-    route_stops = route_data['stop_name'].nunique()
+    route_dirs = sorted(route_data['direction'].unique())
     top_stops = route_data.groupby('stop_name', as_index=False).agg({'passengers': 'sum'}).sort_values('passengers', ascending=False).head(5)
+    direction_summary = route_data.groupby('direction', as_index=False).agg(passengers=('passengers', 'sum')).sort_values('passengers', ascending=False)
 
     stop_list = [html.Li(f"{row['stop_name']} — {int(row['passengers']):,} passengers") for _, row in top_stops.iterrows()]
+    direction_rows = [
+        html.Tr([
+            html.Td(row['direction']),
+            html.Td(f"{int(row['passengers']):,}"),
+            html.Td(f"{int(round(100 * row['passengers'] / max(route_total, 1))):,}%"),
+        ])
+        for _, row in direction_summary.iterrows()
+    ]
+
     order_text = 'Route order details unavailable.'
     if not route_order.empty:
         ordered = route_order[route_order['route_id'] == route_id].sort_values('stop_sequence')
         if not ordered.empty:
             order_text = f"First stop: {ordered.iloc[0]['stop_name']}, last stop: {ordered.iloc[-1]['stop_name']}, total stops: {len(ordered)}."
 
+    route_map_asset = get_route_map_asset(route_id)
+    route_map_embed = None
+    if route_map_asset:
+        route_map_embed = html.Div([
+            html.H6('Route Map', className='mt-3'),
+            html.Iframe(
+                src=app.get_asset_url(route_map_asset),
+                style={'width': '100%', 'height': '420px', 'border': '1px solid #dfe3e8'},
+            ),
+            html.P('This route-specific map helps tie the boarding and alighting summary to the corridor alignment.', className='text-muted small mt-2'),
+        ])
+    else:
+        route_map_embed = dbc.Alert('No route-specific map found for this route. Use the reference map tab instead.', color='info')
+
     return dbc.Card([
-        dbc.CardHeader(f'Route {route_id} Details'),
+        dbc.CardHeader([
+            html.Div([html.Strong(f'Route {route_id} Details')], className='d-flex justify-content-between align-items-center'),
+            html.Div([dbc.Badge('Selected route', color='primary')], className='mt-2'),
+        ]),
         dbc.CardBody([
-            html.Div(f'Passengers: {route_total:,}', className='mb-2'),
-            html.Div(f'Avg daily: {route_avg:,}', className='mb-2'),
-            html.Div(f'Directions: {route_dirs}', className='mb-2'),
+            dbc.Row([
+                dbc.Col(dbc.Card(dbc.CardBody([
+                    html.Div('Passengers', className='text-muted small text-uppercase mb-2'),
+                    html.H4(f'{route_total:,}', className='mb-0'),
+                ]), className='h-100 shadow-sm border-0 bg-white'), width=3),
+                dbc.Col(dbc.Card(dbc.CardBody([
+                    html.Div('Avg daily', className='text-muted small text-uppercase mb-2'),
+                    html.H4(f'{route_avg:,}', className='mb-0'),
+                ]), className='h-100 shadow-sm border-0 bg-white'), width=3),
+                dbc.Col(dbc.Card(dbc.CardBody([
+                    html.Div('Directions', className='text-muted small text-uppercase mb-2'),
+                    html.H4(', '.join(route_dirs), className='mb-0'),
+                ]), className='h-100 shadow-sm border-0 bg-white'), width=3),
+                dbc.Col(dbc.Card(dbc.CardBody([
+                    html.Div('Top stops', className='text-muted small text-uppercase mb-2'),
+                    html.H4(f'{len(top_stops):,}', className='mb-0'),
+                ]), className='h-100 shadow-sm border-0 bg-white'), width=3),
+            ], className='g-3 mb-3'),
             html.Div(order_text, className='text-muted mb-3'),
-            html.H6('Top Stops', className='mb-2'),
-            html.Ul(stop_list, className='small'),
+            dbc.Row([
+                dbc.Col(dbc.Card([
+                    dbc.CardHeader(html.H6('Top Stops')), 
+                    dbc.CardBody([html.Ul(stop_list, className='small mb-0')]),
+                ], className='shadow-sm'), width=6),
+                dbc.Col(dbc.Card([
+                    dbc.CardHeader(html.H6('Direction Load')),
+                    dbc.CardBody([
+                        dbc.Table([
+                            html.Thead(html.Tr([html.Th('Direction'), html.Th('Passengers'), html.Th('Share')])),
+                            html.Tbody(direction_rows),
+                        ], bordered=True, size='sm', className='mb-0')
+                    ]),
+                ], className='shadow-sm'), width=6),
+            ], className='g-4 mb-3'),
+            route_map_embed,
         ]),
     ], className='shadow-sm')
 
