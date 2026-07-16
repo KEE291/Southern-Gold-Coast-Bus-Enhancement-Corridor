@@ -149,8 +149,11 @@ def empty_figure(title='No data available'):
 
 def make_kpi(title, value='', id=None):
     return dbc.Card(
-        dbc.CardBody([html.Div(title, className='text-muted'), html.H3(value)]),
-        className='h-100',
+        dbc.CardBody([
+            html.Div(title, className='text-muted text-uppercase', style={'fontSize': '0.8rem', 'letterSpacing': '0.08em'}),
+            html.H3(value, className='mt-2'),
+        ]),
+        className='h-100 shadow-sm border-0 bg-white',
         id=id,
     )
 
@@ -222,12 +225,19 @@ def build_tab_content(tab_id, dff, route_order, has_geo):
             color_discrete_sequence=px.colors.qualitative.Set2,
         )
 
+        route_rows = [dbc.Row(dbc.Col(route_stop_overview))] if route_stop_overview is not None else []
+        summary_block = [html.H4('Route Stop Summaries', className='mt-4')]
+        if route_lines:
+            summary_block += route_lines
+        else:
+            summary_block.append(html.Div('Stop order details are not available for the selected filters.', className='text-muted'))
+
         return html.Div([
-            dbc.Row(dbc.Col(dcc.Graph(figure=route_chart, config={'displayModeBar': False}))),
-            dbc.Row(dbc.Col(dcc.Graph(figure=avg_chart, config={'displayModeBar': False}))),
-            dbc.Row(dbc.Col(dcc.Graph(figure=direction_chart, config={'displayModeBar': False}))),
-            dbc.Row(dbc.Col(html.Div([html.H4('Route Stop Summaries', className='mt-4')] + (route_lines or [html.Div('Stop order details are not available for the selected filters.')])))),
-            dbc.Row(dbc.Col(route_stop_overview)) if route_stop_overview is not None else None,
+            dbc.Row(dbc.Col(dcc.Graph(figure=route_chart, config={'displayModeBar': False})), className='mb-4'),
+            dbc.Row(dbc.Col(dcc.Graph(figure=avg_chart, config={'displayModeBar': False})), className='mb-4'),
+            dbc.Row(dbc.Col(dcc.Graph(figure=direction_chart, config={'displayModeBar': False})), className='mb-4'),
+            dbc.Row(dbc.Col(html.Div(summary_block))),
+            *route_rows,
         ])
 
     if tab_id == 'tab-trend':
@@ -288,8 +298,8 @@ def build_tab_content(tab_id, dff, route_order, has_geo):
             )
 
         content = [
-            dbc.Row(dbc.Col(dcc.Graph(figure=top_stops_fig, config={'displayModeBar': False}))),
-            dbc.Row(dbc.Col(dcc.Graph(figure=ba_fig, config={'displayModeBar': False}))),
+            dbc.Row(dbc.Col(dcc.Graph(figure=top_stops_fig, config={'displayModeBar': False})), className='mb-4'),
+            dbc.Row(dbc.Col(dcc.Graph(figure=ba_fig, config={'displayModeBar': False})), className='mb-4'),
         ]
 
         if has_geo:
@@ -307,7 +317,7 @@ def build_tab_content(tab_id, dff, route_order, has_geo):
                     height=450,
                     template='plotly_white',
                 )
-                map_fig.update_layout(mapbox_style='open-street-map', margin={'r': 0, 't': 30, 'l': 0, 'b': 0})
+                map_fig.update_layout(mapbox_style='open-street-map', margin={'r': 0, 't': 30, 'l': 0, 'b': 0}, legend={'orientation': 'h', 'y': -0.1})
                 content.insert(0, dbc.Row(dbc.Col(dcc.Graph(id='map-stops', figure=map_fig))))
             else:
                 content.insert(0, dbc.Row(dbc.Col(html.Div('No coordinate data available for the selected filters.'))))
@@ -351,11 +361,11 @@ min_date = df['date'].min()
 max_date = df['date'].max()
 has_geo = 'latitude' in df.columns and 'longitude' in df.columns and df[['latitude', 'longitude']].notna().any().any()
 
-app = Dash(__name__, external_stylesheets=[dbc.themes.LUMEN])
+app = Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
 app.config.suppress_callback_exceptions = True
 
-app.layout = dbc.Container(fluid=True, children=[
-    dbc.Row(dbc.Col(html.H1('Southern Gold Coast Bus Dashboard'), width=12), className='mb-4'),
+app.layout = dbc.Container(fluid=True, style={'maxWidth': '1400px', 'paddingTop': '16px', 'paddingBottom': '24px'}, children=[
+    dbc.Row(dbc.Col(html.Div([html.H1('Southern Gold Coast Bus Dashboard'), html.P('Interactive ridership analysis with route summaries, stop performance, and map-ready stop insights.', className='text-muted')]), width=12), className='mb-4'),
     dbc.Row([
         dbc.Col([
             dbc.Card([
@@ -445,7 +455,9 @@ app.layout = dbc.Container(fluid=True, children=[
                 dbc.Tab(label='Stops', tab_id='tab-stops'),
                 dbc.Tab(label='Trend', tab_id='tab-trend'),
             ], id='tabs', active_tab='tab-overview'),
-            html.Div(id='tab-content', className='mt-3'),
+            dbc.Card([
+                dbc.CardBody(html.Div(id='tab-content', className='mt-3'))
+            ], className='shadow-sm'),
         ], width=9),
     ]),
 ])
