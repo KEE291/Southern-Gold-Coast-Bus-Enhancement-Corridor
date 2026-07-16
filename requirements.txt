@@ -1,0 +1,5 @@
+dash==2.15.0
+pandas==2.2.2
+plotly==5.18.0
+geopandas==0.16.4
+shapely==2.1.2
