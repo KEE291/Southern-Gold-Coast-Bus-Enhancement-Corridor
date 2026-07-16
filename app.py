@@ -30,12 +30,12 @@ def load_data():
 
     for path in files:
         frame = pd.read_csv(path)
-        if 'Date' in frame.columns:
-            frame['date'] = pd.to_datetime(frame['Date'], errors='coerce', dayfirst=True)
+        frame = frame.rename(columns=rename_map)
+
         if 'date' in frame.columns:
             frame['date'] = pd.to_datetime(frame['date'], errors='coerce', dayfirst=True)
-        frame = frame.rename(columns=rename_map)
-        frame = frame.loc[:, ~frame.columns.duplicated()].copy()
+
+        frame = frame.loc[:, ~frame.columns.duplicated(keep='last')].copy()
 
         if 'route_id' in frame.columns:
             frame['route_id'] = frame['route_id'].astype(str).str.strip()
@@ -62,8 +62,11 @@ def load_data():
         frames.append(frame)
 
     df = pd.concat(frames, ignore_index=True, sort=False)
-    df = df.loc[:, ~df.columns.duplicated()].copy()
-    if 'date' not in df.columns:
+    df = df.loc[:, ~df.columns.duplicated(keep='last')].copy()
+
+    if 'date' in df.columns:
+        df['date'] = pd.to_datetime(df['date'], errors='coerce', dayfirst=True)
+    else:
         df['date'] = pd.NaT
     if 'route_id' not in df.columns:
         df['route_id'] = ''
