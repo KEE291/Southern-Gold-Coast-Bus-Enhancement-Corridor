@@ -84,6 +84,8 @@ app.layout = html.Div([
     html.Div([
         html.Label("Route"),
         dcc.Dropdown(options=[{"label": r, "value": r} for r in routes], multi=True, value=routes, id="route-filter"),
+        html.Label("Sort Top Routes By"),
+        dcc.Dropdown(options=[{"label":"Total Passengers","value":"passengers"},{"label":"Avg Daily","value":"avg_daily"}], value='passengers', id='sort-by'),
         html.Label("Direction"),
         dcc.Checklist(options=[{"label": d, "value": d} for d in directions], value=directions, id="direction-filter"),
         html.Label("Date Range"),
@@ -93,6 +95,7 @@ app.layout = html.Div([
     html.Div([
         dcc.Graph(id="map-stops"),
         dcc.Graph(id="no-coord-stops"),
+        html.Div(id='stop-info', style={"padding":"10px","backgroundColor":"#fafafa","marginTop":"10px"}),
         dcc.Graph(id="top-stops"),
         dcc.Graph(id="boarding-vs-alighting"),
         dcc.Graph(id="top-routes"),
@@ -120,6 +123,7 @@ app.layout = html.Div([
     Input("direction-filter", "value"),
     Input("date-range", "start_date"),
     Input("date-range", "end_date"),
+    Input("sort-by", "value"),
 )
 def update_charts(selected_routes, selected_dirs, start_date, end_date):
     if not isinstance(selected_routes, list):
@@ -132,8 +136,13 @@ def update_charts(selected_routes, selected_dirs, start_date, end_date):
 
     # Map of stops
     stops = dff.groupby(["stop_id","stop_name","latitude","longitude"], as_index=False).agg({"passengers":"sum"})
+    # add avg daily for labeling
+    ddays = max((dff["date"].max() - dff["date"].min()).days + 1, 1)
+    stops['avg_daily'] = (stops['passengers'] / ddays).round(0)
+    stops['label'] = stops['avg_daily'].astype(int).astype(str)
     fig_map = px.scatter_mapbox(stops, lat="latitude", lon="longitude", size="passengers", hover_name="stop_name",
-                                color_continuous_scale=px.colors.cyclical.IceFire, size_max=20, zoom=11)
+                                color_continuous_scale=px.colors.cyclical.IceFire, size_max=20, zoom=11, text='label', custom_data=['stop_id','stop_name','avg_daily','passengers'])
+    fig_map.update_traces(textposition='middle center')
     fig_map.update_layout(mapbox_style="open-street-map", margin=dict(l=0,r=0,t=30,b=0))
 
     # Stops without coordinates
@@ -217,6 +226,51 @@ def update_charts(selected_routes, selected_dirs, start_date, end_date):
     kpi_weekend = html.Div([html.H4("Weekend Passengers"), html.Div(f"{weekend_total:,} ({pct_weekend}% of total)")])
 
     return kpi_total, kpi_route, kpi_stop, kpi_avg, kpi_weekday, kpi_weekend, fig_map, fig_nocoord, fig_top_stops, fig_ba, fig_routes, fig_dir, fig_heat
+
+
+
+@app.callback(
+    Output('stop-info', 'children'),
+    Input('map-stops', 'clickData'),
+    Input('route-filter', 'value'),
+    Input('direction-filter', 'value'),
+    Input('date-range', 'start_date'),
+    Input('date-range', 'end_date')
+)
+def show_stop_info(clickData, selected_routes, selected_dirs, start_date, end_date):
+    if not clickData:
+        return html.Div([html.H4('Stop Details'), html.Div('Click a stop on the map to view statistics')])
+    point = clickData['points'][0]
+    # customdata: stop_id, stop_name, avg_daily, passengers
+    c = point.get('customdata', [])
+    stop_id = c[0] if len(c) > 0 else None
+    stop_name = c[1] if len(c) > 1 else point.get('hovertext')
+
+    # filter global df similarly
+    if not isinstance(selected_routes, list):
+        selected_routes = [selected_routes]
+    dff = df[df['route_id'].isin(selected_routes) & df['direction'].isin(selected_dirs)]
+    if start_date:
+        dff = dff[dff['date'] >= pd.to_datetime(start_date)]
+    if end_date:
+        dff = dff[dff['date'] <= pd.to_datetime(end_date)]
+
+    if stop_id is None:
+        return html.Div([html.H4('Stop Details'), html.Div('No stop id available')])
+
+    s = dff[dff['stop_id'] == str(stop_id)]
+    total = int(s['passengers'].sum())
+    boardings = int(s['boardings'].sum()) if 'boardings' in s.columns else 0
+    alightings = int(s['alightings'].sum()) if 'alightings' in s.columns else 0
+
+    # top routes serving this stop
+    top_routes = s.groupby('route_id', as_index=False).agg({'passengers':'sum'}).sort_values('passengers', ascending=False).head(5)
+    fig = px.bar(top_routes, x='route_id', y='passengers', title='Top Routes at Stop') if not top_routes.empty else None
+
+    children = [html.H4(f"Stop: {stop_name or stop_id}"), html.Div(f"Total passengers: {total:,}"), html.Div(f"Boardings: {boardings:,}"), html.Div(f"Alightings: {alightings:,}")]
+    if fig:
+        children.append(dcc.Graph(figure=fig, style={'height':'260px'}))
+    return html.Div(children)
 
 
 if __name__ == "__main__":
