@@ -78,6 +78,10 @@ app.layout = html.Div([
         html.Div(id="kpi-avg-daily", style={"display":"inline-block","padding":"8px","width":"23%","backgroundColor":"#f3f3f3"}),
     ], style={"width":"100%","marginBottom":"10px"}),
     html.Div([
+        html.Div(id="kpi-weekday", style={"display":"inline-block","padding":"8px","width":"48%","backgroundColor":"#eef7ff","marginRight":"2%"}),
+        html.Div(id="kpi-weekend", style={"display":"inline-block","padding":"8px","width":"48%","backgroundColor":"#fff7ee"}),
+    ], style={"width":"100%","marginBottom":"10px"}),
+    html.Div([
         html.Label("Route"),
         dcc.Dropdown(options=[{"label": r, "value": r} for r in routes], multi=True, value=routes, id="route-filter"),
         html.Label("Direction"),
@@ -88,10 +92,12 @@ app.layout = html.Div([
 
     html.Div([
         dcc.Graph(id="map-stops"),
+        dcc.Graph(id="no-coord-stops"),
         dcc.Graph(id="top-stops"),
         dcc.Graph(id="boarding-vs-alighting"),
         dcc.Graph(id="top-routes"),
         dcc.Graph(id="direction-analysis"),
+        dcc.Graph(id="heatmap-time"),
     ], style={"width":"70%", "display":"inline-block", "paddingLeft":"20px"})
 ])
 
