@@ -22,7 +22,7 @@ def load_all_data():
     parts = []
     for f in files:
         try:
-            parts.append(pd.read_csv(f, parse_dates=['date']))
+            parts.append(pd.read_csv(f, parse_dates=['date'], dayfirst=True))
         except Exception:
             try:
                 parts.append(pd.read_csv(f))
@@ -31,22 +31,40 @@ def load_all_data():
     if not parts:
         raise ValueError('No readable CSVs found')
     df = pd.concat(parts, ignore_index=True)
-    # normalize expected columns
-    if 'boardings' in df.columns and 'alightings' in df.columns:
-        df['boardings'] = pd.to_numeric(df['boardings'], errors='coerce').fillna(0)
-        df['alightings'] = pd.to_numeric(df['alightings'], errors='coerce').fillna(0)
-        df['passengers'] = df['boardings'] + df['alightings']
-    else:
-        # try to infer passenger counts
-        if 'passengers' in df.columns:
-            df['passengers'] = pd.to_numeric(df['passengers'], errors='coerce').fillna(0)
-        else:
-            df['passengers'] = 0
-    # Ensure route_id and stop_id string types
+    # unify known column names
+    rename_map = {
+        'Route': 'route_id',
+        'Direction': 'direction',
+        'Stop Name': 'stop_name',
+        'Stop': 'stop_name',
+        'Stop ID': 'stop_id',
+        'Date': 'date',
+        'Boardings': 'boardings',
+        'Alightings': 'alightings',
+        'Latitude': 'latitude',
+        'Longitude': 'longitude',
+    }
+    df = df.rename(columns=rename_map)
+    # type coercion
     if 'route_id' in df.columns:
-        df['route_id'] = df['route_id'].astype(str)
+        df['route_id'] = df['route_id'].astype(str).str.strip()
     if 'stop_id' in df.columns:
-        df['stop_id'] = df['stop_id'].astype(str)
+        df['stop_id'] = df['stop_id'].astype(str).str.strip()
+    if 'stop_name' in df.columns:
+        df['stop_name'] = df['stop_name'].astype(str).fillna('Unknown')
+    if 'date' in df.columns:
+        df['date'] = pd.to_datetime(df['date'], errors='coerce', dayfirst=True)
+    for col in ['boardings', 'alightings', 'passengers', 'latitude', 'longitude']:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+    if 'boardings' in df.columns and 'alightings' in df.columns:
+        df['boardings'] = df['boardings'].fillna(0)
+        df['alightings'] = df['alightings'].fillna(0)
+        df['passengers'] = df['boardings'] + df['alightings']
+    elif 'passengers' in df.columns:
+        df['passengers'] = df['passengers'].fillna(0)
+    else:
+        df['passengers'] = 0
     return df
 
 
@@ -92,6 +110,19 @@ app.layout = dbc.Container(fluid=True, children=[
             dbc.Card([
                 dbc.CardHeader(html.H5("Selected Stop Details")),
                 dbc.CardBody(html.Div(id='stop-info', children=[html.P('Click a stop on the map to show stop metrics')]))
+            ], className='mb-3'),
+            dbc.Card([
+                dbc.CardHeader(html.H5("Stop Data")),
+                dbc.CardBody([
+                    dash_table.DataTable(
+                        id='stop-table',
+                        columns=[{'name': 'Stop ID', 'id': 'stop_id'}, {'name': 'Stop Name', 'id': 'stop_name'}, {'name': 'Passengers', 'id': 'passengers'}, {'name': 'Route Count', 'id': 'routes'}],
+                        page_size=8,
+                        style_table={'overflowX': 'auto'},
+                        style_cell={'textAlign': 'left', 'padding': '5px'},
+                        style_header={'backgroundColor': '#f8f9fa', 'fontWeight': 'bold'}
+                    )
+                ])
             ])
         ], width=3),
         dbc.Col([
