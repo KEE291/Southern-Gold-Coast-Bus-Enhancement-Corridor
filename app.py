@@ -1,37 +1,28 @@
 import pandas as pd
-from datetime import datetime
 from dash import Dash, dcc, html, Input, Output
 import dash_bootstrap_components as dbc
 import dash_table
 import plotly.express as px
-import plotly.graph_objects as go
 import glob
 import os
 
 
-def load_all_data():
-    # look for CSVs in repo root matching IR-1230* and any in data/
+def load_data():
     repo_root = os.path.dirname(__file__)
     patterns = [os.path.join(repo_root, 'IR-1230*.csv'), os.path.join(repo_root, 'data', '*.csv')]
-    files = []
-    for p in patterns:
-        files.extend(glob.glob(p))
-    files = sorted(set(files))
+    files = sorted(set(sum((glob.glob(p) for p in patterns), [])))
     if not files:
-        raise FileNotFoundError("No CSV files found to load")
-    parts = []
-    for f in files:
+        raise FileNotFoundError('No CSV files found in repository or data folder')
+
+    frames = []
+    for path in files:
         try:
-            parts.append(pd.read_csv(f, parse_dates=['date'], dayfirst=True))
+            frame = pd.read_csv(path, parse_dates=['Date', 'date'], dayfirst=True)
         except Exception:
-            try:
-                parts.append(pd.read_csv(f))
-            except Exception:
-                continue
-    if not parts:
-        raise ValueError('No readable CSVs found')
-    df = pd.concat(parts, ignore_index=True)
-    # unify known column names
+            frame = pd.read_csv(path)
+        frames.append(frame)
+
+    df = pd.concat(frames, ignore_index=True)
     rename_map = {
         'Route': 'route_id',
         'Direction': 'direction',
@@ -45,18 +36,24 @@ def load_all_data():
         'Longitude': 'longitude',
     }
     df = df.rename(columns=rename_map)
-    # type coercion
+
     if 'route_id' in df.columns:
         df['route_id'] = df['route_id'].astype(str).str.strip()
     if 'stop_id' in df.columns:
         df['stop_id'] = df['stop_id'].astype(str).str.strip()
     if 'stop_name' in df.columns:
         df['stop_name'] = df['stop_name'].astype(str).fillna('Unknown')
+    if 'direction' in df.columns:
+        df['direction'] = df['direction'].astype(str).fillna('Unknown')
     if 'date' in df.columns:
         df['date'] = pd.to_datetime(df['date'], errors='coerce', dayfirst=True)
-    for col in ['boardings', 'alightings', 'passengers', 'latitude', 'longitude']:
+    else:
+        df['date'] = pd.NaT
+
+    for col in ['boardings', 'alightings', 'latitude', 'longitude', 'passengers']:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
+
     if 'boardings' in df.columns and 'alightings' in df.columns:
         df['boardings'] = df['boardings'].fillna(0)
         df['alightings'] = df['alightings'].fillna(0)
@@ -65,256 +62,350 @@ def load_all_data():
         df['passengers'] = df['passengers'].fillna(0)
     else:
         df['passengers'] = 0
+
     return df
 
 
-df = load_all_data()
+def safe_days(dff):
+    if dff['date'].notna().any():
+        span = dff['date'].max() - dff['date'].min()
+        return max(int(span.days) + 1, 1)
+    return 1
 
-# Normalize columns that may have mixed types or missing values
-if 'direction' in df.columns:
-    df['direction'] = df['direction'].fillna('Unknown').astype(str)
-else:
-    df['direction'] = 'Unknown'
 
-if 'date' in df.columns:
-    df['date'] = pd.to_datetime(df['date'], errors='coerce')
+def empty_figure(title='No data available'):
+    fig = px.bar(x=[], y=[] )
+    fig.update_layout(title=title, xaxis_title=None, yaxis_title=None, paper_bgcolor='white')
+    fig.update_xaxes(showgrid=False, visible=False)
+    fig.update_yaxes(showgrid=False, visible=False)
+    return fig
 
-for col in ['latitude', 'longitude']:
-    if col in df.columns:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-    else:
-        df[col] = pd.NA
+
+def make_kpi(title, value):
+    return dbc.Card(dbc.CardBody([html.Div(title, className='text-muted'), html.H3(value)]), className='h-100')
+
+
+def build_tab_content(tab_id, dff, has_geo):
+    if tab_id == 'tab-routes':
+        route_summary = dff.groupby('route_id', as_index=False).agg({'passengers': 'sum'})
+        route_summary['avg_daily'] = route_summary['passengers'] / safe_days(dff)
+        route_summary = route_summary.sort_values('passengers', ascending=False)
+        direction_breakdown = dff.groupby(['route_id', 'direction'], as_index=False).agg({'passengers': 'sum'})
+
+        return html.Div([
+            dbc.Row(dbc.Col(dcc.Graph(figure=px.bar(route_summary.head(12), x='route_id', y='passengers', title='Top Routes by Total Passengers')))),
+            dbc.Row(dbc.Col(dcc.Graph(figure=px.bar(route_summary.head(12), x='route_id', y='avg_daily', title='Top Routes by Avg Daily Passengers')))),
+            dbc.Row(dbc.Col(dcc.Graph(figure=px.bar(direction_breakdown, x='route_id', y='passengers', color='direction', barmode='group', title='Direction Breakdown by Route')))),
+        ])
+
+    if tab_id == 'tab-trend':
+        if dff.empty or dff['date'].isna().all():
+            return html.Div(dcc.Graph(figure=empty_figure('No trend data available')))
+
+        trend = dff.groupby(dff['date'].dt.date, as_index=False).agg({'passengers': 'sum'})
+        trend = trend.sort_values('date')
+        trend_fig = px.line(trend, x='date', y='passengers', markers=True, title='Daily Passenger Trend')
+        trend_fig.update_layout(xaxis_title='Date', yaxis_title='Passengers')
+
+        dff = dff.copy()
+        dff['weekday'] = dff['date'].dt.day_name()
+        dff['hour'] = dff['date'].dt.hour.fillna(0).astype(int)
+        heat = dff.groupby(['weekday', 'hour'], as_index=False).agg({'passengers': 'sum'})
+        heat['weekday'] = pd.Categorical(heat['weekday'], categories=['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], ordered=True)
+        heat = heat.pivot(index='weekday', columns='hour', values='passengers').fillna(0)
+        heat_fig = px.imshow(heat, aspect='auto', labels={'x': 'Hour', 'y': 'Weekday', 'color': 'Passengers'}, title='Passenger Heatmap by Weekday/Hour')
+
+        return html.Div([
+            dbc.Row(dbc.Col(dcc.Graph(figure=trend_fig))),
+            dbc.Row(dbc.Col(dcc.Graph(figure=heat_fig))),
+        ])
+
+    if tab_id == 'tab-stops':
+        top_stops = dff.groupby(['stop_id', 'stop_name'], as_index=False).agg({'passengers': 'sum', 'boardings': 'sum', 'alightings': 'sum'})
+        top_stops = top_stops.sort_values('passengers', ascending=False).head(20)
+        top_stops_fig = px.bar(top_stops, x='passengers', y='stop_name', orientation='h', title='Top Stops by Passengers')
+        top_stops_fig.update_layout(yaxis={'categoryorder': 'total ascending'})
+
+        ba = dff.groupby('stop_name', as_index=False).agg({'boardings': 'sum', 'alightings': 'sum'})
+        ba = ba.melt(id_vars='stop_name', value_vars=['boardings', 'alightings'], var_name='type', value_name='count')
+        ba_fig = px.bar(ba, x='stop_name', y='count', color='type', title='Boardings vs Alightings')
+        ba_fig.update_layout(xaxis_tickangle=-45)
+
+        content = [
+            dbc.Row(dbc.Col(dcc.Graph(figure=top_stops_fig))),
+            dbc.Row(dbc.Col(dcc.Graph(figure=ba_fig))),
+        ]
+
+        if has_geo:
+            geo_stops = dff.dropna(subset=['latitude', 'longitude']).groupby(['stop_id', 'stop_name', 'latitude', 'longitude'], as_index=False).agg({'passengers': 'sum'})
+            if not geo_stops.empty:
+                map_fig = px.scatter_mapbox(
+                    geo_stops,
+                    lat='latitude',
+                    lon='longitude',
+                    size='passengers',
+                    hover_name='stop_name',
+                    hover_data={'stop_id': True, 'passengers': True},
+                    custom_data=['stop_id', 'stop_name'],
+                    zoom=11,
+                    height=450,
+                )
+                map_fig.update_layout(mapbox_style='open-street-map', margin={'r': 0, 't': 30, 'l': 0, 'b': 0})
+                content.insert(0, dbc.Row(dbc.Col(dcc.Graph(id='map-stops', figure=map_fig))))
+            else:
+                content.insert(0, dbc.Row(dbc.Col(html.Div('No coordinate data available for the selected filters.'))))
+        else:
+            content.insert(0, dbc.Row(dbc.Col(html.Div('No geographic coordinates present in the loaded data.'))))
+
+        return html.Div(content)
+
+    route_summary = dff.groupby('route_id', as_index=False).agg({'passengers': 'sum'})
+    route_summary['avg_daily'] = route_summary['passengers'] / safe_days(dff)
+    route_summary = route_summary.sort_values('passengers', ascending=False)
+
+    stop_summary = dff.groupby(['stop_id', 'stop_name'], as_index=False).agg({'passengers': 'sum'})
+    stop_summary = stop_summary.sort_values('passengers', ascending=False).head(12)
+
+    overview_figs = [
+        px.bar(route_summary.head(10), x='route_id', y='passengers', title='Top 10 Routes by Passengers'),
+        px.bar(stop_summary, x='passengers', y='stop_name', orientation='h', title='Top Stops by Passengers'),
+    ]
+    overview_figs[1].update_layout(yaxis={'categoryorder': 'total ascending'})
+
+    ba = dff.groupby('stop_name', as_index=False).agg({'boardings': 'sum', 'alightings': 'sum'})
+    ba = ba.melt(id_vars='stop_name', value_vars=['boardings', 'alightings'], var_name='type', value_name='count')
+    ba_fig = px.bar(ba, x='stop_name', y='count', color='type', title='Boardings vs Alightings')
+    ba_fig.update_layout(xaxis_tickangle=-45)
+
+    return html.Div([
+        dbc.Row(dbc.Col(dcc.Graph(figure=overview_figs[0]))),
+        dbc.Row(dbc.Col(dcc.Graph(figure=overview_figs[1]))),
+        dbc.Row(dbc.Col(dcc.Graph(figure=ba_fig))),
+    ])
+
+
+df = load_data()
+all_routes = sorted(df['route_id'].dropna().unique())
+all_directions = sorted(df['direction'].dropna().unique())
+min_date = df['date'].min()
+max_date = df['date'].max()
+has_geo = 'latitude' in df.columns and 'longitude' in df.columns and df[['latitude', 'longitude']].notna().any().any()
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.LUMEN])
-
-routes = sorted(df["route_id"].dropna().unique())
-directions = sorted(df["direction"].dropna().unique())
+app.config.suppress_callback_exceptions = True
 
 app.layout = dbc.Container(fluid=True, children=[
-    dbc.Row(dbc.Col(html.H1("Southern Gold Coast Bus Dashboard"), width=12), className="mb-3"),
+    dbc.Row(dbc.Col(html.H1('Southern Gold Coast Bus Dashboard'), width=12), className='mb-4'),
     dbc.Row([
         dbc.Col([
             dbc.Card([
-                dbc.CardHeader(html.H5("Filters & Controls")),
+                dbc.CardHeader(html.H5('Filters')),
                 dbc.CardBody([
-                    html.Label("Route"),
-                    dcc.Dropdown(options=[{"label": r, "value": r} for r in routes], multi=True, value=routes, id="route-filter", style={"marginBottom":"1rem"}),
-                    html.Label("Direction"),
-                    dcc.Checklist(options=[{"label": d, "value": d} for d in directions], value=directions, id="direction-filter", style={"marginBottom":"1rem"}),
-                    html.Label("Date Range"),
-                    dcc.DatePickerRange(id="date-range", start_date=df["date"].min(), end_date=df["date"].max(), display_format='DD/MM/YYYY', style={"marginBottom":"1rem"}),
-                    html.Label("Sort Top Routes By"),
-                    dcc.Dropdown(options=[{"label":"Total Passengers","value":"passengers"},{"label":"Avg Daily","value":"avg_daily"}], value='passengers', id='sort-by'),
-                ])
-            ], className="mb-3"),
+                    html.Div([
+                        html.Label('Route'),
+                        dcc.Dropdown(
+                            id='route-filter',
+                            options=[{'label': r, 'value': r} for r in all_routes],
+                            value=all_routes,
+                            multi=True,
+                        ),
+                    ], className='mb-3'),
+                    html.Div([
+                        html.Label('Direction'),
+                        dcc.Checklist(
+                            id='direction-filter',
+                            options=[{'label': d, 'value': d} for d in all_directions],
+                            value=all_directions,
+                        ),
+                    ], className='mb-3'),
+                    html.Div([
+                        html.Label('Date Range'),
+                        dcc.DatePickerRange(
+                            id='date-range',
+                            start_date=min_date,
+                            end_date=max_date,
+                            display_format='DD/MM/YYYY',
+                        ),
+                    ], className='mb-3'),
+                    html.Div([
+                        html.Label('Sort Routes By'),
+                        dcc.Dropdown(
+                            id='sort-by',
+                            options=[
+                                {'label': 'Total Passengers', 'value': 'passengers'},
+                                {'label': 'Average Daily Passengers', 'value': 'avg_daily'},
+                            ],
+                            value='passengers',
+                            clearable=False,
+                        ),
+                    ]),
+                ]),
+            ]),
+            html.Div(id='stop-info-card', className='mt-3'),
             dbc.Card([
-                dbc.CardHeader(html.H5("Selected Stop Details")),
-                dbc.CardBody(html.Div(id='stop-info', children=[html.P('Click a stop on the map to show stop metrics')]))
-            ], className='mb-3'),
-            dbc.Card([
-                dbc.CardHeader(html.H5("Stop Data")),
+                dbc.CardHeader(html.H5('Stop Summary')),
                 dbc.CardBody([
                     dash_table.DataTable(
                         id='stop-table',
-                        columns=[{'name': 'Stop ID', 'id': 'stop_id'}, {'name': 'Stop Name', 'id': 'stop_name'}, {'name': 'Passengers', 'id': 'passengers'}, {'name': 'Route Count', 'id': 'routes'}],
+                        columns=[
+                            {'name': 'Stop ID', 'id': 'stop_id'},
+                            {'name': 'Stop Name', 'id': 'stop_name'},
+                            {'name': 'Passengers', 'id': 'passengers'},
+                            {'name': 'Routes', 'id': 'routes'},
+                        ],
                         page_size=8,
+                        sort_action='native',
                         style_table={'overflowX': 'auto'},
                         style_cell={'textAlign': 'left', 'padding': '5px'},
-                        style_header={'backgroundColor': '#f8f9fa', 'fontWeight': 'bold'}
+                        style_header={'backgroundColor': '#f8f9fa', 'fontWeight': 'bold'},
                     )
-                ])
-            ])
+                ]),
+            ], className='mt-3'),
         ], width=3),
         dbc.Col([
             dbc.Row([
-                dbc.Col(dbc.Card([dbc.CardBody([html.H6("Total Passengers"), html.H3(id='kpi-total')])]), width=3),
-                dbc.Col(dbc.Card([dbc.CardBody([html.H6("Busiest Route"), html.H3(id='kpi-busiest-route')])]), width=3),
-                dbc.Col(dbc.Card([dbc.CardBody([html.H6("Top Stop"), html.H3(id='kpi-busiest-stop')])]), width=3),
-                dbc.Col(dbc.Card([dbc.CardBody([html.H6("Avg Daily"), html.H3(id='kpi-avg-daily')])]), width=3),
+                dbc.Col(make_kpi('Total Passengers', id='kpi-total'), width=3),
+                dbc.Col(make_kpi('Busiest Route', id='kpi-busiest-route'), width=3),
+                dbc.Col(make_kpi('Top Stop', id='kpi-busiest-stop'), width=3),
+                dbc.Col(make_kpi('Avg Daily', id='kpi-avg-daily'), width=3),
             ], className='mb-3'),
             dbc.Row([
-                dbc.Col(dbc.Card([dbc.CardBody([html.H6("Weekday Passengers"), html.H4(id='kpi-weekday')])])),
-                dbc.Col(dbc.Card([dbc.CardBody([html.H6("Weekend Passengers"), html.H4(id='kpi-weekend')])])),
+                dbc.Col(make_kpi('Weekday Passengers', id='kpi-weekday'), width=6),
+                dbc.Col(make_kpi('Weekend Passengers', id='kpi-weekend'), width=6),
             ], className='mb-3'),
             dbc.Tabs([
                 dbc.Tab(label='Overview', tab_id='tab-overview'),
-                dbc.Tab(label='Stops', tab_id='tab-stops'),
                 dbc.Tab(label='Routes', tab_id='tab-routes'),
+                dbc.Tab(label='Stops', tab_id='tab-stops'),
                 dbc.Tab(label='Trend', tab_id='tab-trend'),
             ], id='tabs', active_tab='tab-overview'),
-            html.Div(id='tab-content', className='mt-3')
-        ], width=9)
-    ])
+            html.Div(id='tab-content', className='mt-3'),
+        ], width=9),
+    ]),
 ])
 
 
 @app.callback(
-    Output("kpi-total", "children"),
-    Output("kpi-busiest-route", "children"),
-    Output("kpi-busiest-stop", "children"),
-    Output("kpi-avg-daily", "children"),
-    Output("kpi-weekday", "children"),
-    Output("kpi-weekend", "children"),
-    Output("map-stops", "figure"),
-    Output("no-coord-stops", "figure"),
-    Output("top-stops", "figure"),
-    Output("boarding-vs-alighting", "figure"),
-    Output("top-routes", "figure"),
-    Output("direction-analysis", "figure"),
-    Output("heatmap-time", "figure"),
-    Input("route-filter", "value"),
-    Input("direction-filter", "value"),
-    Input("date-range", "start_date"),
-    Input("date-range", "end_date"),
-    Input("sort-by", "value"),
-)
-def update_charts(selected_routes, selected_dirs, start_date, end_date):
-    if not isinstance(selected_routes, list):
-        selected_routes = [selected_routes]
-    dff = df[df["route_id"].isin(selected_routes) & df["direction"].isin(selected_dirs)]
-    if start_date:
-        dff = dff[dff["date"] >= pd.to_datetime(start_date)]
-    if end_date:
-        dff = dff[dff["date"] <= pd.to_datetime(end_date)]
-
-    # Map of stops
-    stops = dff.groupby(["stop_id","stop_name","latitude","longitude"], as_index=False).agg({"passengers":"sum"})
-    # add avg daily for labeling
-    ddays = max((dff["date"].max() - dff["date"].min()).days + 1, 1)
-    stops['avg_daily'] = (stops['passengers'] / ddays).round(0)
-    stops['label'] = stops['avg_daily'].astype(int).astype(str)
-    fig_map = px.scatter_mapbox(stops, lat="latitude", lon="longitude", size="passengers", hover_name="stop_name",
-                                color_continuous_scale=px.colors.cyclical.IceFire, size_max=20, zoom=11, text='label', custom_data=['stop_id','stop_name','avg_daily','passengers'])
-    fig_map.update_traces(textposition='middle center')
-    fig_map.update_layout(mapbox_style="open-street-map", margin=dict(l=0,r=0,t=30,b=0))
-
-    # Stops without coordinates
-    no_coord = dff[dff['latitude'].isna() | dff['longitude'].isna()]
-    if not no_coord.empty:
-        no_coord_grp = no_coord.groupby(['stop_id','stop_name'], as_index=False).agg({'passengers':'sum'})
-        fig_nocoord = px.bar(no_coord_grp.sort_values('passengers', ascending=False).head(20), x='passengers', y='stop_name', orientation='h', title='Top Stops Without Coordinates')
-    else:
-        fig_nocoord = px.bar(pd.DataFrame({'stop_name':[], 'passengers':[]}), x='passengers', y='stop_name', title='Top Stops Without Coordinates')
-
-    # Top stops by avg daily passengers
-    days = (dff["date"].max() - dff["date"].min()).days + 1
-    stop_daily = dff.groupby(["stop_id","stop_name"], as_index=False).agg({"passengers":"sum"})
-    stop_daily["avg_daily"] = stop_daily["passengers"]/max(days,1)
-    top_stops = stop_daily.sort_values("avg_daily", ascending=False).head(10)
-    fig_top_stops = px.bar(top_stops, x="avg_daily", y="stop_name", orientation="h", title="Top Stops (Avg Daily Passengers)")
-
-    # Boarding vs alighting
-    ba = dff.groupby(["stop_name"], as_index=False).agg({"boardings":"sum","alightings":"sum"})
-    ba_m = ba.melt(id_vars=["stop_name"], value_vars=["boardings","alightings"], var_name="type", value_name="count")
-    fig_ba = px.bar(ba_m, x="stop_name", y="count", color="type", title="Boarding vs Alighting by Stop")
-
-    # Top ten routes by movements
-    routes_sum = dff.groupby("route_id", as_index=False).agg({"passengers":"sum"}).sort_values("passengers", ascending=False).head(10)
-    fig_routes = px.bar(routes_sum, x="route_id", y="passengers", title="Top 10 Routes by Passenger Movements")
-
-    # Direction analysis
-    dir_sum = dff.groupby(["route_id","direction"], as_index=False).agg({"passengers":"sum"})
-    fig_dir = px.bar(dir_sum, x="route_id", y="passengers", color="direction", barmode="group", title="Direction Analysis by Route")
-
-    # Time-of-day heatmap (hour vs weekday)
-    # derive hour column if possible
-    if 'hour' not in dff.columns:
-        if dff['date'].notna().any():
-            dff['hour'] = dff['date'].dt.hour.fillna(0).astype(int)
-        else:
-            # fallback: try columns that contain 'time'
-            time_cols = [c for c in dff.columns if 'time' in c.lower()]
-            if time_cols:
-                dff['hour'] = pd.to_datetime(dff[time_cols[0]], errors='coerce').dt.hour.fillna(0).astype(int)
-            else:
-                dff['hour'] = 0
-
-    if dff['date'].notna().any():
-        dff['weekday'] = dff['date'].dt.day_name()
-    else:
-        dff['weekday'] = 'Unknown'
-
-    heat_pivot = dff.groupby(['weekday','hour'], as_index=False).agg({'passengers':'sum'})
-    # order weekdays
-    weekdays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday','Unknown']
-    heat_pivot['weekday'] = pd.Categorical(heat_pivot['weekday'], categories=weekdays, ordered=True)
-    heat = heat_pivot.pivot_table(index='weekday', columns='hour', values='passengers', fill_value=0)
-    fig_heat = px.imshow(heat.reindex(weekdays).fillna(0), aspect='auto', labels=dict(x='Hour', y='Weekday', color='Passengers'), title='Passengers by Weekday and Hour')
-
-    # KPIs
-    total_passengers = int(dff['passengers'].sum()) if not dff.empty else 0
-    busiest_route = None
-    if not routes_sum.empty:
-        busiest_route = f"Route {routes_sum.iloc[0]['route_id']} ({int(routes_sum.iloc[0]['passengers'])} pax)"
-    busiest_stop = None
-    if not top_stops.empty:
-        busiest_stop = f"{top_stops.iloc[0]['stop_name']} ({int(top_stops.iloc[0]['avg_daily'])} avg/day)"
-    days = (dff["date"].max() - dff["date"].min()).days + 1 if not dff.empty else 1
-    avg_daily_overall = round(dff['passengers'].sum()/max(days,1),1) if not dff.empty else 0
-    kpi_total = html.Div([html.H4("Total Passengers"), html.Div(f"{total_passengers:,}")])
-    kpi_route = html.Div([html.H4("Busiest Route"), html.Div(busiest_route or "N/A")])
-    kpi_stop = html.Div([html.H4("Top Stop (avg/day)"), html.Div(busiest_stop or "N/A")])
-    kpi_avg = html.Div([html.H4("Avg Daily Passengers"), html.Div(f"{avg_daily_overall}")])
-
-    # Weekday/weekend KPIs
-    if dff['date'].notna().any():
-        weekday_mask = dff['date'].dt.dayofweek < 5
-        weekday_total = int(dff.loc[weekday_mask, 'passengers'].sum())
-        weekend_total = int(dff.loc[~weekday_mask, 'passengers'].sum())
-    else:
-        weekday_total = 0
-        weekend_total = int(dff['passengers'].sum())
-    pct_weekend = round(100 * weekend_total / max(1, weekday_total + weekend_total), 1)
-    kpi_weekday = html.Div([html.H4("Weekday Passengers"), html.Div(f"{weekday_total:,}")])
-    kpi_weekend = html.Div([html.H4("Weekend Passengers"), html.Div(f"{weekend_total:,} ({pct_weekend}% of total)")])
-
-    return kpi_total, kpi_route, kpi_stop, kpi_avg, kpi_weekday, kpi_weekend, fig_map, fig_nocoord, fig_top_stops, fig_ba, fig_routes, fig_dir, fig_heat
-
-
-
-@app.callback(
-    Output('stop-info', 'children'),
-    Input('map-stops', 'clickData'),
+    Output('kpi-total', 'children'),
+    Output('kpi-busiest-route', 'children'),
+    Output('kpi-busiest-stop', 'children'),
+    Output('kpi-avg-daily', 'children'),
+    Output('kpi-weekday', 'children'),
+    Output('kpi-weekend', 'children'),
+    Output('tab-content', 'children'),
+    Output('stop-table', 'data'),
     Input('route-filter', 'value'),
     Input('direction-filter', 'value'),
     Input('date-range', 'start_date'),
-    Input('date-range', 'end_date')
+    Input('date-range', 'end_date'),
+    Input('tabs', 'active_tab'),
+    Input('sort-by', 'value'),
 )
-def show_stop_info(clickData, selected_routes, selected_dirs, start_date, end_date):
-    if not clickData:
-        return html.Div([html.H4('Stop Details'), html.Div('Click a stop on the map to view statistics')])
-    point = clickData['points'][0]
-    # customdata: stop_id, stop_name, avg_daily, passengers
-    c = point.get('customdata', [])
-    stop_id = c[0] if len(c) > 0 else None
-    stop_name = c[1] if len(c) > 1 else point.get('hovertext')
-
-    # filter global df similarly
-    if not isinstance(selected_routes, list):
-        selected_routes = [selected_routes]
-    dff = df[df['route_id'].isin(selected_routes) & df['direction'].isin(selected_dirs)]
+def update_dashboard(selected_routes, selected_dirs, start_date, end_date, active_tab, sort_by):
+    routes = selected_routes if isinstance(selected_routes, list) else [selected_routes]
+    dirs = selected_dirs if isinstance(selected_dirs, list) else [selected_dirs]
+    dff = df.copy()
+    if routes:
+        dff = dff[dff['route_id'].isin(routes)]
+    if dirs:
+        dff = dff[dff['direction'].isin(dirs)]
     if start_date:
         dff = dff[dff['date'] >= pd.to_datetime(start_date)]
     if end_date:
         dff = dff[dff['date'] <= pd.to_datetime(end_date)]
 
-    if stop_id is None:
-        return html.Div([html.H4('Stop Details'), html.Div('No stop id available')])
+    if dff.empty:
+        content = html.Div('No data matches the selected filters.')
+        return '0', 'N/A', 'N/A', '0', '0', '0', content, []
 
-    s = dff[dff['stop_id'] == str(stop_id)]
-    total = int(s['passengers'].sum())
-    boardings = int(s['boardings'].sum()) if 'boardings' in s.columns else 0
-    alightings = int(s['alightings'].sum()) if 'alightings' in s.columns else 0
+    days = safe_days(dff)
+    route_summary = dff.groupby('route_id', as_index=False).agg({'passengers': 'sum'})
+    route_summary['avg_daily'] = route_summary['passengers'] / days
+    route_summary = route_summary.sort_values(sort_by, ascending=False)
 
-    # top routes serving this stop
-    top_routes = s.groupby('route_id', as_index=False).agg({'passengers':'sum'}).sort_values('passengers', ascending=False).head(5)
-    fig = px.bar(top_routes, x='route_id', y='passengers', title='Top Routes at Stop') if not top_routes.empty else None
+    stop_summary = dff.groupby(['stop_id', 'stop_name'], as_index=False).agg({'passengers': 'sum', 'boardings': 'sum', 'alightings': 'sum'})
+    stop_summary['routes'] = dff.groupby('stop_id')['route_id'].nunique().reindex(stop_summary['stop_id']).fillna(0).astype(int).values
+    stop_summary = stop_summary.sort_values('passengers', ascending=False)
 
-    children = [html.H4(f"Stop: {stop_name or stop_id}"), html.Div(f"Total passengers: {total:,}"), html.Div(f"Boardings: {boardings:,}"), html.Div(f"Alightings: {alightings:,}")]
-    if fig:
-        children.append(dcc.Graph(figure=fig, style={'height':'260px'}))
-    return html.Div(children)
+    total_passengers = int(dff['passengers'].sum())
+    busiest_route = route_summary.iloc[0]
+    busiest_stop = stop_summary.iloc[0]
+    avg_daily = round(total_passengers / days, 1)
+    weekday_mask = dff['date'].dt.dayofweek < 5
+    weekday_passengers = int(dff.loc[weekday_mask, 'passengers'].sum())
+    weekend_passengers = int(dff.loc[~weekday_mask, 'passengers'].sum())
+
+    content = build_tab_content(active_tab, dff, has_geo)
+    table_data = stop_summary[['stop_id', 'stop_name', 'passengers', 'routes']].head(15).to_dict('records')
+
+    return (
+        f'{total_passengers:,}',
+        f'{busiest_route['route_id']} ({int(busiest_route['passengers']):,})',
+        f'{busiest_stop['stop_name']} ({int(busiest_stop['passengers']):,})',
+        f'{avg_daily:,}',
+        f'{weekday_passengers:,}',
+        f'{weekend_passengers:,}',
+        content,
+        table_data,
+    )
 
 
-if __name__ == "__main__":
+@app.callback(
+    Output('stop-info-card', 'children'),
+    Input('map-stops', 'clickData'),
+    Input('route-filter', 'value'),
+    Input('direction-filter', 'value'),
+    Input('date-range', 'start_date'),
+    Input('date-range', 'end_date'),
+)
+def update_stop_info(click_data, selected_routes, selected_dirs, start_date, end_date):
+    if click_data is None:
+        return dbc.Card([
+            dbc.CardHeader('Selected Stop Details'),
+            dbc.CardBody('Click a stop marker in the Stops tab to view ridership details.'),
+        ])
+
+    point = click_data['points'][0]
+    custom = point.get('customdata', [])
+    stop_id = custom[0] if len(custom) > 0 else None
+    stop_name = custom[1] if len(custom) > 1 else point.get('hovertext')
+
+    routes = selected_routes if isinstance(selected_routes, list) else [selected_routes]
+    dirs = selected_dirs if isinstance(selected_dirs, list) else [selected_dirs]
+    dff = df.copy()
+    if routes:
+        dff = dff[dff['route_id'].isin(routes)]
+    if dirs:
+        dff = dff[dff['direction'].isin(dirs)]
+    if start_date:
+        dff = dff[dff['date'] >= pd.to_datetime(start_date)]
+    if end_date:
+        dff = dff[dff['date'] <= pd.to_datetime(end_date)]
+
+    stop_filter = dff['stop_id'] == str(stop_id) if stop_id is not None else dff['stop_name'] == stop_name
+    stop_data = dff[stop_filter]
+    if stop_data.empty:
+        return dbc.Card([
+            dbc.CardHeader('Selected Stop Details'),
+            dbc.CardBody('No data found for the selected stop.'),
+        ])
+
+    total = int(stop_data['passengers'].sum())
+    boardings = int(stop_data['boardings'].sum())
+    alightings = int(stop_data['alightings'].sum())
+    top_routes = stop_data.groupby('route_id', as_index=False).agg({'passengers': 'sum'}).sort_values('passengers', ascending=False).head(5)
+    route_fig = px.bar(top_routes, x='route_id', y='passengers', title='Top Routes Serving This Stop')
+
+    return dbc.Card([
+        dbc.CardHeader(f'Stop: {stop_name or stop_id}'),
+        dbc.CardBody([
+            html.Div(f'Total passengers: {total:,}'),
+            html.Div(f'Boardings: {boardings:,}'),
+            html.Div(f'Alightings: {alightings:,}'),
+            dcc.Graph(figure=route_fig, style={'height': '260px'}),
+        ]),
+    ])
+
+
+if __name__ == '__main__':
     app.run_server(debug=True, port=8050)
