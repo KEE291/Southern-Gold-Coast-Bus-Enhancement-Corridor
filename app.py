@@ -1,3 +1,4 @@
+import re
 import pandas as pd
 from dash import Dash, dcc, html, Input, Output, dash_table
 import dash_bootstrap_components as dbc
@@ -8,12 +9,29 @@ import os
 
 def load_data():
     repo_root = os.path.dirname(__file__)
-    patterns = [os.path.join(repo_root, 'IR-1230*.csv'), os.path.join(repo_root, 'data', '*.csv')]
-    files = sorted(set(sum((glob.glob(p) for p in patterns), [])))
-    if not files:
-        raise FileNotFoundError('No CSV files found in repository or data folder')
+    candidate_csv = sorted(glob.glob(os.path.join(repo_root, 'IR-1230*.csv')))
+    route_order_paths = []
+    ridership_paths = []
 
-    frames = []
+    for path in candidate_csv:
+        try:
+            sample = pd.read_csv(path, nrows=0, encoding='utf-8-sig')
+        except Exception:
+            continue
+        columns = [col.strip() for col in sample.columns]
+        if 'Stop Sequence' in columns and 'Stop' in columns and 'Date' not in columns:
+            route_order_paths.append(path)
+        elif 'Date' in columns and 'Boardings' in columns and 'Alightings' in columns:
+            ridership_paths.append(path)
+
+    if not ridership_paths:
+        sample_path = os.path.join(repo_root, 'data', 'ridership_sample.csv')
+        if os.path.exists(sample_path):
+            ridership_paths.append(sample_path)
+
+    if not ridership_paths:
+        raise FileNotFoundError('No ridership CSV files found in repository. Expected IR-1230*.csv or data/ridership_sample.csv')
+
     rename_map = {
         'Route': 'route_id',
         'Direction': 'direction',
@@ -26,9 +44,16 @@ def load_data():
         'Latitude': 'latitude',
         'Longitude': 'longitude',
     }
+    direction_map = {
+        'Northbound': 'North',
+        'Southbound': 'South',
+        'Eastbound': 'East',
+        'Westbound': 'West',
+    }
 
-    for path in files:
-        frame = pd.read_csv(path)
+    frames = []
+    for path in ridership_paths:
+        frame = pd.read_csv(path, encoding='utf-8-sig')
         frame = frame.rename(columns=rename_map)
 
         if 'date' in frame.columns:
@@ -43,7 +68,7 @@ def load_data():
         if 'stop_name' in frame.columns:
             frame['stop_name'] = frame['stop_name'].astype(str).fillna('Unknown')
         if 'direction' in frame.columns:
-            frame['direction'] = frame['direction'].astype(str).fillna('Unknown')
+            frame['direction'] = frame['direction'].astype(str).replace(direction_map).str.strip()
 
         for col in ['boardings', 'alightings', 'latitude', 'longitude', 'passengers']:
             if col in frame.columns:
@@ -78,7 +103,33 @@ def load_data():
     if 'passengers' not in df.columns:
         df['passengers'] = 0
 
-    return df
+    df['route_id'] = df['route_id'].astype(str).str.strip().replace({'nan': ''})
+    df['stop_id'] = df['stop_id'].astype(str).str.strip().replace({'nan': ''})
+    df['stop_name'] = df['stop_name'].astype(str).str.strip().replace({'nan': 'Unknown'})
+    df['direction'] = df['direction'].astype(str).replace(direction_map).str.strip().replace({'nan': 'Unknown'})
+
+    route_order = pd.DataFrame()
+    if route_order_paths:
+        route_order_parts = []
+        for path in route_order_paths:
+            order_frame = pd.read_csv(path, encoding='utf-8-sig')
+            order_frame = order_frame.rename(columns={
+                'Route': 'route_id',
+                'Direction': 'direction',
+                'Stop Sequence': 'stop_sequence',
+                'Stop': 'raw_stop',
+            })
+            route_order_parts.append(order_frame)
+        route_order = pd.concat(route_order_parts, ignore_index=True, sort=False)
+        route_order['route_id'] = route_order['route_id'].astype(str).str.strip()
+        route_order['direction'] = route_order['direction'].astype(str).replace(direction_map).str.strip()
+        route_order['stop_sequence'] = pd.to_numeric(route_order['stop_sequence'], errors='coerce')
+        route_order[['stop_name', 'stop_id']] = route_order['raw_stop'].str.extract(r'^(.*)\s+\[(\d+)\]$')
+        route_order['stop_id'] = route_order['stop_id'].fillna('').astype(str).str.strip()
+        route_order['stop_name'] = route_order['stop_name'].fillna(route_order['raw_stop']).str.strip()
+        route_order = route_order[['route_id', 'direction', 'stop_sequence', 'stop_id', 'stop_name']]
+
+    return df, route_order
 
 
 def safe_days(dff):
@@ -104,17 +155,30 @@ def make_kpi(title, value='', id=None):
     )
 
 
-def build_tab_content(tab_id, dff, has_geo):
+def build_tab_content(tab_id, dff, route_order, has_geo):
     if tab_id == 'tab-routes':
         route_summary = dff.groupby('route_id', as_index=False).agg({'passengers': 'sum'})
         route_summary['avg_daily'] = route_summary['passengers'] / safe_days(dff)
         route_summary = route_summary.sort_values('passengers', ascending=False)
         direction_breakdown = dff.groupby(['route_id', 'direction'], as_index=False).agg({'passengers': 'sum'})
 
+        route_lines = []
+        if not route_order.empty:
+            selected = route_order[route_order['route_id'].isin(route_summary['route_id'])]
+            if not selected.empty:
+                route_lines = [
+                    html.Div([
+                        html.H6(f"Route {route_id} — {direction}"),
+                        html.Div(', '.join(group['stop_name'].tolist()), className='small text-muted'),
+                    ], className='mb-3')
+                    for (route_id, direction), group in selected.sort_values(['route_id', 'direction', 'stop_sequence']).groupby(['route_id', 'direction'])
+                ]
+
         return html.Div([
             dbc.Row(dbc.Col(dcc.Graph(figure=px.bar(route_summary.head(12), x='route_id', y='passengers', title='Top Routes by Total Passengers')))),
             dbc.Row(dbc.Col(dcc.Graph(figure=px.bar(route_summary.head(12), x='route_id', y='avg_daily', title='Top Routes by Avg Daily Passengers')))),
             dbc.Row(dbc.Col(dcc.Graph(figure=px.bar(direction_breakdown, x='route_id', y='passengers', color='direction', barmode='group', title='Direction Breakdown by Route')))),
+            dbc.Row(dbc.Col(html.Div([html.H4('Route Stop Sequences', className='mt-4')] + (route_lines or [html.Div('Stop order details are not available for the selected filters.')])))),
         ])
 
     if tab_id == 'tab-trend':
@@ -149,6 +213,14 @@ def build_tab_content(tab_id, dff, has_geo):
         ba = ba.melt(id_vars='stop_name', value_vars=['boardings', 'alightings'], var_name='type', value_name='count')
         ba_fig = px.bar(ba, x='stop_name', y='count', color='type', title='Boardings vs Alightings')
         ba_fig.update_layout(xaxis_tickangle=-45)
+
+        route_map = pd.DataFrame()
+        if not route_order.empty:
+            route_map = route_order.merge(
+                dff[['route_id', 'direction', 'stop_id', 'stop_name']].drop_duplicates(),
+                on=['route_id', 'direction', 'stop_id', 'stop_name'],
+                how='inner'
+            )
 
         content = [
             dbc.Row(dbc.Col(dcc.Graph(figure=top_stops_fig))),
@@ -203,7 +275,7 @@ def build_tab_content(tab_id, dff, has_geo):
     ])
 
 
-df = load_data()
+df, route_order = load_data()
 all_routes = sorted(df['route_id'].dropna().unique())
 all_directions = sorted(df['direction'].dropna().unique())
 min_date = df['date'].min()
@@ -243,6 +315,8 @@ app.layout = dbc.Container(fluid=True, children=[
                             id='date-range',
                             start_date=min_date,
                             end_date=max_date,
+                            min_date_allowed=min_date,
+                            max_date_allowed=max_date,
                             display_format='DD/MM/YYYY',
                         ),
                     ], className='mb-3'),
@@ -335,7 +409,16 @@ def update_dashboard(selected_routes, selected_dirs, start_date, end_date, activ
 
     if dff.empty:
         content = html.Div('No data matches the selected filters.')
-        return '0', 'N/A', 'N/A', '0', '0', '0', content, []
+        return (
+            html.Div('0', className='h3 mb-0'),
+            html.Div('N/A', className='h3 mb-0'),
+            html.Div('N/A', className='h3 mb-0'),
+            html.Div('0', className='h3 mb-0'),
+            html.Div('0', className='h3 mb-0'),
+            html.Div('0', className='h3 mb-0'),
+            content,
+            [],
+        )
 
     days = safe_days(dff)
     route_summary = dff.groupby('route_id', as_index=False).agg({'passengers': 'sum'})
@@ -354,16 +437,16 @@ def update_dashboard(selected_routes, selected_dirs, start_date, end_date, activ
     weekday_passengers = int(dff.loc[weekday_mask, 'passengers'].sum())
     weekend_passengers = int(dff.loc[~weekday_mask, 'passengers'].sum())
 
-    content = build_tab_content(active_tab, dff, has_geo)
+    content = build_tab_content(active_tab, dff, route_order, has_geo)
     table_data = stop_summary[['stop_id', 'stop_name', 'passengers', 'routes']].head(15).to_dict('records')
 
     return (
-        f'{total_passengers:,}',
-        f'{busiest_route['route_id']} ({int(busiest_route['passengers']):,})',
-        f'{busiest_stop['stop_name']} ({int(busiest_stop['passengers']):,})',
-        f'{avg_daily:,}',
-        f'{weekday_passengers:,}',
-        f'{weekend_passengers:,}',
+        html.Div(f'{total_passengers:,}', className='h3 mb-0'),
+        html.Div(f"{busiest_route['route_id']} ({int(busiest_route['passengers']):,})", className='h3 mb-0'),
+        html.Div(f"{busiest_stop['stop_name']} ({int(busiest_stop['passengers']):,})", className='h3 mb-0'),
+        html.Div(f'{avg_daily:,}', className='h3 mb-0'),
+        html.Div(f'{weekday_passengers:,}', className='h3 mb-0'),
+        html.Div(f'{weekend_passengers:,}', className='h3 mb-0'),
         content,
         table_data,
     )
