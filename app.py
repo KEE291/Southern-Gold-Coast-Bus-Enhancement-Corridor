@@ -49,6 +49,21 @@ def load_all_data():
 
 df = load_all_data()
 
+# Normalize columns that may have mixed types or missing values
+if 'direction' in df.columns:
+    df['direction'] = df['direction'].fillna('Unknown').astype(str)
+else:
+    df['direction'] = 'Unknown'
+
+if 'date' in df.columns:
+    df['date'] = pd.to_datetime(df['date'], errors='coerce')
+
+for col in ['latitude', 'longitude']:
+    if col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+    else:
+        df[col] = pd.NA
+
 app = Dash(__name__)
 
 routes = sorted(df["route_id"].unique())
