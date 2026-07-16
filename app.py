@@ -15,14 +15,6 @@ def load_data():
         raise FileNotFoundError('No CSV files found in repository or data folder')
 
     frames = []
-    for path in files:
-        try:
-            frame = pd.read_csv(path, parse_dates=['Date', 'date'], dayfirst=True)
-        except Exception:
-            frame = pd.read_csv(path)
-        frames.append(frame)
-
-    df = pd.concat(frames, ignore_index=True)
     rename_map = {
         'Route': 'route_id',
         'Direction': 'direction',
@@ -35,32 +27,53 @@ def load_data():
         'Latitude': 'latitude',
         'Longitude': 'longitude',
     }
-    df = df.rename(columns=rename_map)
 
-    if 'route_id' in df.columns:
-        df['route_id'] = df['route_id'].astype(str).str.strip()
-    if 'stop_id' in df.columns:
-        df['stop_id'] = df['stop_id'].astype(str).str.strip()
-    if 'stop_name' in df.columns:
-        df['stop_name'] = df['stop_name'].astype(str).fillna('Unknown')
-    if 'direction' in df.columns:
-        df['direction'] = df['direction'].astype(str).fillna('Unknown')
-    if 'date' in df.columns:
-        df['date'] = pd.to_datetime(df['date'], errors='coerce', dayfirst=True)
-    else:
+    for path in files:
+        frame = pd.read_csv(path)
+        if 'Date' in frame.columns:
+            frame['date'] = pd.to_datetime(frame['Date'], errors='coerce', dayfirst=True)
+        if 'date' in frame.columns:
+            frame['date'] = pd.to_datetime(frame['date'], errors='coerce', dayfirst=True)
+        frame = frame.rename(columns=rename_map)
+        frame = frame.loc[:, ~frame.columns.duplicated()].copy()
+
+        if 'route_id' in frame.columns:
+            frame['route_id'] = frame['route_id'].astype(str).str.strip()
+        if 'stop_id' in frame.columns:
+            frame['stop_id'] = frame['stop_id'].astype(str).str.strip()
+        if 'stop_name' in frame.columns:
+            frame['stop_name'] = frame['stop_name'].astype(str).fillna('Unknown')
+        if 'direction' in frame.columns:
+            frame['direction'] = frame['direction'].astype(str).fillna('Unknown')
+
+        for col in ['boardings', 'alightings', 'latitude', 'longitude', 'passengers']:
+            if col in frame.columns:
+                frame[col] = pd.to_numeric(frame[col], errors='coerce')
+
+        if 'boardings' in frame.columns and 'alightings' in frame.columns:
+            frame['boardings'] = frame['boardings'].fillna(0)
+            frame['alightings'] = frame['alightings'].fillna(0)
+            frame['passengers'] = frame['boardings'] + frame['alightings']
+        elif 'passengers' in frame.columns:
+            frame['passengers'] = frame['passengers'].fillna(0)
+        else:
+            frame['passengers'] = 0
+
+        frames.append(frame)
+
+    df = pd.concat(frames, ignore_index=True, sort=False)
+    df = df.loc[:, ~df.columns.duplicated()].copy()
+    if 'date' not in df.columns:
         df['date'] = pd.NaT
-
-    for col in ['boardings', 'alightings', 'latitude', 'longitude', 'passengers']:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
-
-    if 'boardings' in df.columns and 'alightings' in df.columns:
-        df['boardings'] = df['boardings'].fillna(0)
-        df['alightings'] = df['alightings'].fillna(0)
-        df['passengers'] = df['boardings'] + df['alightings']
-    elif 'passengers' in df.columns:
-        df['passengers'] = df['passengers'].fillna(0)
-    else:
+    if 'route_id' not in df.columns:
+        df['route_id'] = ''
+    if 'stop_id' not in df.columns:
+        df['stop_id'] = ''
+    if 'stop_name' not in df.columns:
+        df['stop_name'] = 'Unknown'
+    if 'direction' not in df.columns:
+        df['direction'] = 'Unknown'
+    if 'passengers' not in df.columns:
         df['passengers'] = 0
 
     return df
