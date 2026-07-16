@@ -1,7 +1,10 @@
 import pandas as pd
 from datetime import datetime
 from dash import Dash, dcc, html, Input, Output
+import dash_bootstrap_components as dbc
+import dash_table
 import plotly.express as px
+import plotly.graph_objects as go
 import glob
 import os
 
@@ -64,44 +67,53 @@ for col in ['latitude', 'longitude']:
     else:
         df[col] = pd.NA
 
-app = Dash(__name__)
+app = Dash(__name__, external_stylesheets=[dbc.themes.LUMEN])
 
-routes = sorted(df["route_id"].unique())
-directions = sorted(df["direction"].unique())
+routes = sorted(df["route_id"].dropna().unique())
+directions = sorted(df["direction"].dropna().unique())
 
-app.layout = html.Div([
-    html.H2("Bus Network Overview"),
-    html.Div([
-        html.Div(id="kpi-total", style={"display":"inline-block","padding":"8px","width":"23%","backgroundColor":"#f3f3f3","marginRight":"1%"}),
-        html.Div(id="kpi-busiest-route", style={"display":"inline-block","padding":"8px","width":"23%","backgroundColor":"#f3f3f3","marginRight":"1%"}),
-        html.Div(id="kpi-busiest-stop", style={"display":"inline-block","padding":"8px","width":"23%","backgroundColor":"#f3f3f3","marginRight":"1%"}),
-        html.Div(id="kpi-avg-daily", style={"display":"inline-block","padding":"8px","width":"23%","backgroundColor":"#f3f3f3"}),
-    ], style={"width":"100%","marginBottom":"10px"}),
-    html.Div([
-        html.Div(id="kpi-weekday", style={"display":"inline-block","padding":"8px","width":"48%","backgroundColor":"#eef7ff","marginRight":"2%"}),
-        html.Div(id="kpi-weekend", style={"display":"inline-block","padding":"8px","width":"48%","backgroundColor":"#fff7ee"}),
-    ], style={"width":"100%","marginBottom":"10px"}),
-    html.Div([
-        html.Label("Route"),
-        dcc.Dropdown(options=[{"label": r, "value": r} for r in routes], multi=True, value=routes, id="route-filter"),
-        html.Label("Sort Top Routes By"),
-        dcc.Dropdown(options=[{"label":"Total Passengers","value":"passengers"},{"label":"Avg Daily","value":"avg_daily"}], value='passengers', id='sort-by'),
-        html.Label("Direction"),
-        dcc.Checklist(options=[{"label": d, "value": d} for d in directions], value=directions, id="direction-filter"),
-        html.Label("Date Range"),
-        dcc.DatePickerRange(id="date-range", start_date=df["date"].min(), end_date=df["date"].max()),
-    ], style={"width":"25%", "display":"inline-block", "verticalAlign":"top"}),
-
-    html.Div([
-        dcc.Graph(id="map-stops"),
-        dcc.Graph(id="no-coord-stops"),
-        html.Div(id='stop-info', style={"padding":"10px","backgroundColor":"#fafafa","marginTop":"10px"}),
-        dcc.Graph(id="top-stops"),
-        dcc.Graph(id="boarding-vs-alighting"),
-        dcc.Graph(id="top-routes"),
-        dcc.Graph(id="direction-analysis"),
-        dcc.Graph(id="heatmap-time"),
-    ], style={"width":"70%", "display":"inline-block", "paddingLeft":"20px"})
+app.layout = dbc.Container(fluid=True, children=[
+    dbc.Row(dbc.Col(html.H1("Southern Gold Coast Bus Dashboard"), width=12), className="mb-3"),
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader(html.H5("Filters & Controls")),
+                dbc.CardBody([
+                    html.Label("Route"),
+                    dcc.Dropdown(options=[{"label": r, "value": r} for r in routes], multi=True, value=routes, id="route-filter", style={"marginBottom":"1rem"}),
+                    html.Label("Direction"),
+                    dcc.Checklist(options=[{"label": d, "value": d} for d in directions], value=directions, id="direction-filter", style={"marginBottom":"1rem"}),
+                    html.Label("Date Range"),
+                    dcc.DatePickerRange(id="date-range", start_date=df["date"].min(), end_date=df["date"].max(), display_format='DD/MM/YYYY', style={"marginBottom":"1rem"}),
+                    html.Label("Sort Top Routes By"),
+                    dcc.Dropdown(options=[{"label":"Total Passengers","value":"passengers"},{"label":"Avg Daily","value":"avg_daily"}], value='passengers', id='sort-by'),
+                ])
+            ], className="mb-3"),
+            dbc.Card([
+                dbc.CardHeader(html.H5("Selected Stop Details")),
+                dbc.CardBody(html.Div(id='stop-info', children=[html.P('Click a stop on the map to show stop metrics')]))
+            ])
+        ], width=3),
+        dbc.Col([
+            dbc.Row([
+                dbc.Col(dbc.Card([dbc.CardBody([html.H6("Total Passengers"), html.H3(id='kpi-total')])]), width=3),
+                dbc.Col(dbc.Card([dbc.CardBody([html.H6("Busiest Route"), html.H3(id='kpi-busiest-route')])]), width=3),
+                dbc.Col(dbc.Card([dbc.CardBody([html.H6("Top Stop"), html.H3(id='kpi-busiest-stop')])]), width=3),
+                dbc.Col(dbc.Card([dbc.CardBody([html.H6("Avg Daily"), html.H3(id='kpi-avg-daily')])]), width=3),
+            ], className='mb-3'),
+            dbc.Row([
+                dbc.Col(dbc.Card([dbc.CardBody([html.H6("Weekday Passengers"), html.H4(id='kpi-weekday')])])),
+                dbc.Col(dbc.Card([dbc.CardBody([html.H6("Weekend Passengers"), html.H4(id='kpi-weekend')])])),
+            ], className='mb-3'),
+            dbc.Tabs([
+                dbc.Tab(label='Overview', tab_id='tab-overview'),
+                dbc.Tab(label='Stops', tab_id='tab-stops'),
+                dbc.Tab(label='Routes', tab_id='tab-routes'),
+                dbc.Tab(label='Trend', tab_id='tab-trend'),
+            ], id='tabs', active_tab='tab-overview'),
+            html.Div(id='tab-content', className='mt-3')
+        ], width=9)
+    ])
 ])
 
 
