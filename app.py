@@ -222,6 +222,7 @@ def build_map_data(dff, route_order, stop_lookup):
     stop_summary['stop_name'] = stop_summary['stop_id'].map(canonical_names).fillna('Unknown')
     stop_summary['routes'] = stop_summary['stop_id'].map(dff.groupby('stop_id')['route_id'].nunique().astype(int)).fillna(0).astype(int)
     stop_summary = stop_summary.sort_values('passengers', ascending=False)
+    stop_summary = stop_summary[(stop_summary['stop_id'] != '') & (stop_summary['stop_name'] != 'Unknown')]
 
     map_points = []
     for _, row in stop_summary.iterrows():
@@ -232,6 +233,8 @@ def build_map_data(dff, route_order, stop_lookup):
             r for r in dff.loc[dff['stop_id'] == row['stop_id'], 'route_id'].dropna().astype(str).unique()
             if str(r).strip()
         )
+        if not route_ids:
+            continue
         map_points.append({
             'stop_id': row['stop_id'],
             'stop_name': row['stop_name'],
@@ -331,11 +334,13 @@ def build_map_figure(map_df, selected_stop_id=None):
                 showlegend=False,
             ))
 
+    avg_lat = map_df['latitude'].mean() if not map_df.empty else -28.18
+    avg_lon = map_df['longitude'].mean() if not map_df.empty else 153.54
     fig.update_layout(
         mapbox=dict(
-            style='open-street-map',
-            center=dict(lat=-28.18, lon=153.54),
-            zoom=9.5,
+            style='carto-positron',
+            center=dict(lat=avg_lat, lon=avg_lon),
+            zoom=10,
         ),
         margin={'l': 0, 'r': 0, 't': 0, 'b': 0},
         paper_bgcolor='white',
