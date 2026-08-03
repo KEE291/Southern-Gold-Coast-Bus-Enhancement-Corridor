@@ -448,12 +448,15 @@ app.layout = dbc.Container(fluid=True, style={'maxWidth': '1500px', 'padding': '
                     ),
                     html.Iframe(
                         src='/assets/260518-gold-coast-network-map.pdf',
-                        style={'width': '100%', 'height': '720px', 'border': '1px solid #dee2e6'},
+                        style={'width': '100%', 'height': '480px', 'border': '1px solid #dee2e6'},
                     ),
                     html.Div(
                         html.A('Open the full route map in a new tab', href='/assets/260518-gold-coast-network-map.pdf', target='_blank', style={'fontWeight': '600'}),
                         className='mt-3',
                     ),
+                    html.Hr(),
+                    html.H6('Interactive corridor map overlay', className='mt-3 mb-2'),
+                    dcc.Graph(id='corridor-map', figure=empty_figure('Loading corridor map'), config={'displayModeBar': False}, style={'height': '500px'}),
                 ]),
             ], className='shadow-sm mb-4'),
         ], width=8),
@@ -511,7 +514,7 @@ app.layout = dbc.Container(fluid=True, style={'maxWidth': '1500px', 'padding': '
 
 @app.callback(
     [Output('kpi-0', 'children'), Output('kpi-1', 'children'), Output('kpi-2', 'children'), Output('kpi-3', 'children'), Output('kpi-4', 'children'), Output('kpi-5', 'children')],
-    [Output('selection-detail', 'children'), Output('stop-table', 'data'), Output('route-trend', 'figure'), Output('boarding-chart', 'figure')],
+    [Output('selection-detail', 'children'), Output('stop-table', 'data'), Output('route-trend', 'figure'), Output('boarding-chart', 'figure'), Output('corridor-map', 'figure')],
     Input('route-filter', 'value'),
     Input('direction-filter', 'value'),
     Input('date-range', 'start_date'),
@@ -547,10 +550,16 @@ def update_dashboard(selected_routes, selected_dirs, start_date, end_date, selec
             [],
             empty,
             empty,
+            empty,
         )
 
-    if selected_stop_id and selected_stop_id not in dff['stop_id'].values:
+    stop_lookup = build_stop_location_lookup(sorted(set(dff['stop_name'].astype(str).dropna())) if not dff.empty else [])
+    map_df, _ = build_map_data(dff, route_order, stop_lookup)
+
+    if selected_stop_id and selected_stop_id not in map_df['stop_id'].values:
         selected_stop_id = None
+
+    map_figure = build_map_figure(map_df, selected_stop_id=selected_stop_id)
 
     if selected_stop_id:
         stop_data = dff[dff['stop_id'] == selected_stop_id]
@@ -605,6 +614,7 @@ def update_dashboard(selected_routes, selected_dirs, start_date, end_date, selec
         stop_table,
         trend_fig,
         boarding_fig,
+        map_figure,
     )
 
 
