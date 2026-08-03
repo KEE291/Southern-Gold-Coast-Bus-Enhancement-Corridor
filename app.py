@@ -404,6 +404,27 @@ app.layout = dbc.Container(fluid=True, style={'maxWidth': '1500px', 'padding': '
                         dcc.Checklist(id='direction-filter', options=[{'label': direction, 'value': direction} for direction in all_directions], value=all_directions, inline=False),
                     ], className='mb-3'),
                     html.Div([
+                        html.Div([
+                            html.Label('Select stop', className='fw-semibold'),
+                            html.Span('Official IDs only', className='badge bg-info text-dark ms-2', style={'fontSize': '0.75rem'}),
+                        ], className='d-flex align-items-center'),
+                        dcc.Dropdown(
+                            id='stop-filter',
+                            options=[
+                                {'label': name, 'value': sid}
+                                for sid, name in sorted(
+                                    df.loc[df['stop_id'].astype(str).str.strip() != '', ['stop_id', 'stop_name']]
+                                      .drop_duplicates()
+                                      .values,
+                                    key=lambda x: x[1]
+                                )
+                            ],
+                            placeholder='Choose a stop to inspect',
+                            clearable=True,
+                        ),
+                        html.Small('Stop selection is tied to the official route network map.', className='text-muted'),
+                    ], className='mb-3'),
+                    html.Div([
                         html.Label('Date range', className='fw-semibold'),
                         dcc.DatePickerRange(id='date-range', start_date=min_date, end_date=max_date, min_date_allowed=min_date, max_date_allowed=max_date, display_format='DD/MM/YYYY', day_size=39),
                     ], className='mb-3'),
@@ -419,17 +440,22 @@ app.layout = dbc.Container(fluid=True, style={'maxWidth': '1500px', 'padding': '
     dbc.Row([
         dbc.Col([
             dbc.Card([
-                dbc.CardHeader(html.H5('Interactive Corridor Map')),
+                dbc.CardHeader(html.H5('Official Route Network Reference')),
                 dbc.CardBody([
-                    dcc.Graph(
-                        id='corridor-map',
-                        figure=empty_figure('Loading corridor map'),
-                        config={'displayModeBar': False, 'scrollZoom': True},
-                        clear_on_unhover=True,
-                        style={'height': '700px', 'width': '100%'},
+                    html.P(
+                        'Use the provided Gold Coast route network map as the authoritative source for stop and corridor geometry. The stop dropdown is tied to the route data so selected demand metrics align with this official map.',
+                        className='text-muted mb-3'
+                    ),
+                    html.Iframe(
+                        src='/assets/260518-gold-coast-network-map.pdf',
+                        style={'width': '100%', 'height': '720px', 'border': '1px solid #dee2e6'},
+                    ),
+                    html.Div(
+                        html.A('Open the full route map in a new tab', href='/assets/260518-gold-coast-network-map.pdf', target='_blank', style={'fontWeight': '600'}),
+                        className='mt-3',
                     ),
                 ]),
-            ], className='shadow-sm'),
+            ], className='shadow-sm mb-4'),
         ], width=8),
         dbc.Col([
             dbc.Card([
@@ -485,14 +511,14 @@ app.layout = dbc.Container(fluid=True, style={'maxWidth': '1500px', 'padding': '
 
 @app.callback(
     [Output('kpi-0', 'children'), Output('kpi-1', 'children'), Output('kpi-2', 'children'), Output('kpi-3', 'children'), Output('kpi-4', 'children'), Output('kpi-5', 'children')],
-    [Output('corridor-map', 'figure'), Output('selection-detail', 'children'), Output('stop-table', 'data'), Output('route-trend', 'figure'), Output('boarding-chart', 'figure')],
+    [Output('selection-detail', 'children'), Output('stop-table', 'data'), Output('route-trend', 'figure'), Output('boarding-chart', 'figure')],
     Input('route-filter', 'value'),
     Input('direction-filter', 'value'),
     Input('date-range', 'start_date'),
     Input('date-range', 'end_date'),
-    Input('corridor-map', 'clickData'),
+    Input('stop-filter', 'value'),
 )
-def update_dashboard(selected_routes, selected_dirs, start_date, end_date, click_data):
+def update_dashboard(selected_routes, selected_dirs, start_date, end_date, selected_stop_id):
     routes = selected_routes if isinstance(selected_routes, list) else [selected_routes]
     dirs = selected_dirs if isinstance(selected_dirs, list) else [selected_dirs]
     dff = df.copy()
@@ -507,22 +533,24 @@ def update_dashboard(selected_routes, selected_dirs, start_date, end_date, click
 
     if dff.empty:
         empty = empty_figure('No data available')
-        return ('0', 'N/A', 'N/A', '0', '0', '0', empty, dbc.Alert('No matching data for the selected filters.', color='warning'), [], empty, empty)
+        return (
+            '0',
+            'N/A',
+            'N/A',
+            '0',
+            '0',
+            '0',
+            dbc.Card([
+                dbc.CardHeader('No selection available'),
+                dbc.CardBody([html.P('No matching data for the selected filters.', className='text-muted mb-0')]),
+            ], className='shadow-sm'),
+            [],
+            empty,
+            empty,
+        )
 
-    summary_cards = build_summary_cards(dff)
-    summary_values = [html.Div(value, className='h3 mb-0') for _, value in summary_cards]
-
-    stop_lookup = build_stop_location_lookup(sorted(set(dff['stop_name'].astype(str).dropna())) if not dff.empty else [])
-    map_df, _ = build_map_data(dff, route_order, stop_lookup)
-    selected_stop_id = None
-    if isinstance(click_data, dict):
-        points = click_data.get('points')
-        if isinstance(points, list) and points:
-            customdata = points[0].get('customdata')
-            if isinstance(customdata, (list, tuple)) and customdata:
-                selected_stop_id = str(customdata[0])
-
-    map_figure = build_map_figure(map_df, selected_stop_id=selected_stop_id)
+    if selected_stop_id and selected_stop_id not in dff['stop_id'].values:
+        selected_stop_id = None
 
     if selected_stop_id:
         stop_data = dff[dff['stop_id'] == selected_stop_id]
@@ -544,10 +572,10 @@ def update_dashboard(selected_routes, selected_dirs, start_date, end_date, click
         ], className='shadow-sm')
     else:
         detail = dbc.Card([
-            dbc.CardHeader('How to use the map'),
+            dbc.CardHeader('How to use the reference map'),
             dbc.CardBody([
-                html.P('Click any stop marker to inspect passenger demand and the routes that serve it.', className='text-muted mb-2'),
-                html.P('The network lines show how the selected routes connect along the corridor.', className='text-muted mb-0'),
+                html.P('Open the Gold Coast network map on the left and select a stop from the dropdown to inspect demand.', className='text-muted mb-2'),
+                html.P('Filtered routes and directions update the stop-level passenger counts below.', className='text-muted mb-0'),
             ]),
         ], className='shadow-sm')
 
@@ -563,6 +591,9 @@ def update_dashboard(selected_routes, selected_dirs, start_date, end_date, click
     boarding_fig = px.bar(boardings, x='stop_name', y=['boardings', 'alightings'], barmode='group', title='Boardings vs alightings', template='plotly_white')
     boarding_fig.update_layout(xaxis_tickangle=-35, margin={'t': 45})
 
+    summary_cards = build_summary_cards(dff)
+    summary_values = [html.Div(value, className='h3 mb-0') for _, value in summary_cards]
+
     return (
         summary_values[0],
         summary_values[1],
@@ -570,7 +601,6 @@ def update_dashboard(selected_routes, selected_dirs, start_date, end_date, click
         summary_values[3],
         summary_values[4],
         summary_values[5],
-        map_figure,
         detail,
         stop_table,
         trend_fig,
