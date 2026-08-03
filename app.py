@@ -1,3 +1,4 @@
+import difflib
 import glob
 import hashlib
 import json
@@ -190,39 +191,85 @@ def fallback_coordinates(stop_name):
     return {'latitude': round(lat, 5), 'longitude': round(lon, 5)}
 
 
-def resolve_stop_location(stop_name, cache=None):
+def resolve_stop_location(stop_name, cache=None, allow_fallback=False):
     if cache is None:
         cache = {}
     if stop_name in cache:
         return cache[stop_name]
+    if allow_fallback:
+        result = fallback_coordinates(stop_name)
+        cache[stop_name] = result
+        return result
+    return None
 
-    result = fallback_coordinates(stop_name)
-    cache[stop_name] = result
-    return result
+
+def normalize_stop_name(name):
+    if not name:
+        return ''
+    text = str(name)
+    text = re.sub(r'\s*\[\d+\]$', '', text)
+    text = re.sub(r'\b(station|stn|bus stop|busstop|stop)\b', '', text, flags=re.I)
+    text = re.sub(r'\b(closed|closure|closures|permanent|permanently|until|from|\d{1,2}\s*(oct|nov|dec|jan|feb|mar|apr|may|jun|jul|aug|sep)\b).*$', '', text, flags=re.I)
+    text = re.sub(r'\b(pde|rd|dr|st|ave|av|hwy|highway|terrace|tce|cres|bvd|bvd|ct|place|lane|ln|circuit|cir|way|gr|grove|op|esplanade)\b', lambda m: m.group(1).lower(), text, flags=re.I)
+    text = re.sub(r'[^a-z0-9 ]+', ' ', text.lower())
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
 
 
-def build_stop_location_lookup(stop_names, cache_path=CACHE_PATH):
+def find_stop_coordinate(stop_name, cache):
+    if not stop_name:
+        return None
+    if stop_name in cache:
+        return cache[stop_name]
+    normalized = normalize_stop_name(stop_name)
+    normalized_cache = {normalize_stop_name(k): k for k in cache.keys()}
+    if normalized in normalized_cache:
+        return cache[normalized_cache[normalized]]
+    matches = difflib.get_close_matches(normalized, list(normalized_cache.keys()), n=1, cutoff=0.75)
+    if matches:
+        return cache[normalized_cache[matches[0]]]
+    return None
+
+
+def build_stop_location_lookup(stop_names, cache_path=CACHE_PATH, allow_fallback=False):
     cache = load_stop_location_cache(cache_path)
     stop_names = [name for name in stop_names if name and str(name).strip()]
     unique_names = sorted(set(stop_names))
     resolved = {}
     for stop_name in unique_names:
-        resolved[stop_name] = resolve_stop_location(stop_name, cache=cache)
-    save_stop_location_cache(cache, cache_path)
+        coordinate = find_stop_coordinate(stop_name, cache)
+        if coordinate is None and allow_fallback:
+            coordinate = resolve_stop_location(stop_name, cache=cache, allow_fallback=True)
+        resolved[stop_name] = coordinate
+    if allow_fallback:
+        save_stop_location_cache(cache, cache_path)
     return resolved
 
 
-def build_map_data(dff, route_order, stop_lookup):
-    canonical_names = {
-        stop_id: choose_canonical_stop_name(group['stop_name'].tolist())
-        for stop_id, group in dff.groupby('stop_id')
-    }
+def build_map_data(dff, route_order, stop_lookup, stop_name_by_stop_id):
+    dff = dff.copy()
+    dff['route_id'] = dff['route_id'].astype(str).str.strip()
+    dff['stop_id'] = dff['stop_id'].astype(str).str.strip()
+    dff['direction'] = dff['direction'].astype(str).str.strip()
 
-    stop_summary = dff.groupby('stop_id', as_index=False).agg({'passengers': 'sum', 'boardings': 'sum', 'alightings': 'sum'})
-    stop_summary['stop_name'] = stop_summary['stop_id'].map(canonical_names).fillna('Unknown')
+    route_order = route_order.copy()
+    route_order['route_id'] = route_order['route_id'].astype(str).str.strip()
+    route_order['direction'] = route_order['direction'].astype(str).str.strip()
+    route_order['stop_id'] = route_order['stop_id'].astype(str).str.strip()
+    route_order['stop_name'] = route_order['stop_name'].astype(str).str.strip()
+
+    route_order['canonical_name'] = route_order['stop_id'].map(stop_name_by_stop_id).fillna(route_order['stop_name'])
+    official_stops = route_order[['stop_id', 'canonical_name']].drop_duplicates().rename(columns={'canonical_name': 'stop_name'})
+
+    demand = dff.groupby('stop_id', as_index=False).agg({'passengers': 'sum', 'boardings': 'sum', 'alightings': 'sum'})
+    demand['stop_id'] = demand['stop_id'].astype(str).str.strip()
+    stop_summary = official_stops.merge(demand, on='stop_id', how='left').fillna({'passengers': 0, 'boardings': 0, 'alightings': 0})
+    stop_summary['passengers'] = stop_summary['passengers'].astype(int)
+    stop_summary['boardings'] = stop_summary['boardings'].astype(int)
+    stop_summary['alightings'] = stop_summary['alightings'].astype(int)
     stop_summary['routes'] = stop_summary['stop_id'].map(dff.groupby('stop_id')['route_id'].nunique().astype(int)).fillna(0).astype(int)
+    stop_summary = stop_summary[stop_summary['stop_name'].isin(stop_lookup.keys())]
     stop_summary = stop_summary.sort_values('passengers', ascending=False)
-    stop_summary = stop_summary[(stop_summary['stop_id'] != '') & (stop_summary['stop_name'] != 'Unknown')]
 
     map_points = []
     for _, row in stop_summary.iterrows():
@@ -230,11 +277,8 @@ def build_map_data(dff, route_order, stop_lookup):
         if location is None:
             continue
         route_ids = sorted(
-            r for r in dff.loc[dff['stop_id'] == row['stop_id'], 'route_id'].dropna().astype(str).unique()
-            if str(r).strip()
+            route_order.loc[route_order['stop_id'] == row['stop_id'], 'route_id'].dropna().astype(str).unique()
         )
-        if not route_ids:
-            continue
         map_points.append({
             'stop_id': row['stop_id'],
             'stop_name': row['stop_name'],
@@ -244,7 +288,7 @@ def build_map_data(dff, route_order, stop_lookup):
             'routes': int(row['routes']),
             'latitude': location['latitude'],
             'longitude': location['longitude'],
-            'route_ids': ', '.join(route_ids),
+            'route_ids': ', '.join(route_ids) if route_ids else 'None',
         })
 
     map_df = pd.DataFrame(map_points)
@@ -253,21 +297,33 @@ def build_map_data(dff, route_order, stop_lookup):
 
     route_lines = []
     if not route_order.empty:
-        route_order = route_order.copy()
-        route_order['stop_id'] = route_order['stop_id'].astype(str).str.strip()
-        route_order = route_order[route_order['stop_id'].isin(map_df['stop_id'])]
         for route_id in sorted(route_order['route_id'].dropna().unique()):
             for direction in sorted(route_order.loc[route_order['route_id'] == route_id, 'direction'].dropna().unique()):
                 ordered = route_order[(route_order['route_id'] == route_id) & (route_order['direction'] == direction)].sort_values('stop_sequence')
-                if ordered.empty or len(ordered) < 2:
-                    continue
                 ordered = ordered.merge(map_df[['stop_id', 'latitude', 'longitude']], on='stop_id', how='left')
-                if ordered[['latitude', 'longitude']].notna().all().all():
+                ordered = ordered[ordered[['latitude', 'longitude']].notna().all(axis=1)]
+                if len(ordered) < 2:
+                    continue
+                current_segment = []
+                for _, row in ordered.iterrows():
+                    if current_segment:
+                        prev = current_segment[-1]
+                        if abs(row['latitude'] - prev['latitude']) > 0.04 or abs(row['longitude'] - prev['longitude']) > 0.04:
+                            if len(current_segment) >= 2:
+                                route_lines.append({
+                                    'route_id': route_id,
+                                    'direction': direction,
+                                    'lat': [r['latitude'] for r in current_segment],
+                                    'lon': [r['longitude'] for r in current_segment],
+                                })
+                            current_segment = []
+                    current_segment.append(row)
+                if len(current_segment) >= 2:
                     route_lines.append({
                         'route_id': route_id,
                         'direction': direction,
-                        'lat': ordered['latitude'].tolist(),
-                        'lon': ordered['longitude'].tolist(),
+                        'lat': [r['latitude'] for r in current_segment],
+                        'lon': [r['longitude'] for r in current_segment],
                     })
 
     return map_df, route_lines
@@ -284,8 +340,27 @@ def make_kpi(title, value='', id=None):
     )
 
 
-def build_map_figure(map_df, selected_stop_id=None):
+def build_map_figure(map_df, route_lines=None, selected_stop_id=None):
     fig = go.Figure()
+
+    if route_lines is None:
+        route_lines = []
+
+    if route_lines:
+        colors = px.colors.qualitative.Prism
+        for index, line in enumerate(route_lines):
+            color = colors[index % len(colors)]
+            fig.add_trace(go.Scattermapbox(
+                lat=line['lat'],
+                lon=line['lon'],
+                mode='lines',
+                line=dict(color=color, width=3),
+                name=f"Route {line['route_id']} {line['direction']}",
+                hoverinfo='text',
+                text=[f"Route {line['route_id']} — {line['direction']}"] * len(line['lat']),
+                opacity=0.7,
+                showlegend=True,
+            ))
 
     if not map_df.empty:
         customdata = list(zip(map_df['stop_id'], map_df['passengers'], map_df['boardings'], map_df['alightings'], map_df['routes'], map_df['route_ids']))
@@ -341,6 +416,16 @@ def build_map_figure(map_df, selected_stop_id=None):
             center=dict(lat=avg_lat, lon=avg_lon),
             zoom=10,
         ),
+        legend=dict(
+            title='Route overlay',
+            orientation='h',
+            yanchor='bottom',
+            y=1.02,
+            xanchor='left',
+            x=0,
+            font=dict(size=11),
+            bgcolor='rgba(255,255,255,0.85)',
+        ),
         margin={'l': 0, 'r': 0, 't': 0, 'b': 0},
         paper_bgcolor='white',
         plot_bgcolor='white',
@@ -375,8 +460,14 @@ def build_summary_cards(dff):
 
 
 df, route_order = load_data()
-all_routes = sorted(df.loc[df['route_id'].astype(str).str.strip() != '', 'route_id'].dropna().unique())
-all_directions = sorted(df.loc[df['direction'].astype(str).str.strip() != '', 'direction'].dropna().unique())
+if not route_order.empty:
+    all_routes = sorted(route_order['route_id'].astype(str).str.strip().dropna().unique())
+    all_directions = sorted(route_order['direction'].astype(str).str.strip().dropna().unique())
+    stop_options = route_order[['stop_id', 'stop_name']].drop_duplicates().sort_values('stop_name')
+else:
+    all_routes = sorted(df.loc[df['route_id'].astype(str).str.strip() != '', 'route_id'].dropna().unique())
+    all_directions = sorted(df.loc[df['direction'].astype(str).str.strip() != '', 'direction'].dropna().unique())
+    stop_options = df.loc[df['stop_id'].astype(str).str.strip() != '', ['stop_id', 'stop_name']].drop_duplicates().sort_values('stop_name')
 min_date = df['date'].min()
 max_date = df['date'].max()
 
@@ -398,6 +489,7 @@ app.layout = dbc.Container(fluid=True, style={'maxWidth': '1500px', 'padding': '
                     html.Div([
                         html.Label('Routes', className='fw-semibold'),
                         dcc.Dropdown(id='route-filter', options=[{'label': route, 'value': route} for route in all_routes], value=all_routes, multi=True, clearable=False),
+                        html.Small('Only official corridor routes with route geometry are shown on the map.', className='text-muted d-block mt-1'),
                     ], className='mb-3'),
                     html.Div([
                         html.Label('Directions', className='fw-semibold'),
@@ -413,9 +505,7 @@ app.layout = dbc.Container(fluid=True, style={'maxWidth': '1500px', 'padding': '
                             options=[
                                 {'label': name, 'value': sid}
                                 for sid, name in sorted(
-                                    df.loc[df['stop_id'].astype(str).str.strip() != '', ['stop_id', 'stop_name']]
-                                      .drop_duplicates()
-                                      .values,
+                                    stop_options.values,
                                     key=lambda x: x[1]
                                 )
                             ],
@@ -553,13 +643,17 @@ def update_dashboard(selected_routes, selected_dirs, start_date, end_date, selec
             empty,
         )
 
-    stop_lookup = build_stop_location_lookup(sorted(set(dff['stop_name'].astype(str).dropna())) if not dff.empty else [])
-    map_df, _ = build_map_data(dff, route_order, stop_lookup)
+    stop_lookup = build_stop_location_lookup(sorted(set(route_order['stop_name'].astype(str).dropna())), allow_fallback=False)
+    stop_name_by_stop_id = dff.groupby('stop_id', as_index=False)['stop_name'].agg(lambda s: s.mode().iloc[0] if not s.mode().empty else s.iloc[0]).set_index('stop_id')['stop_name'].to_dict()
+    map_df, route_lines = build_map_data(dff, route_order, stop_lookup, stop_name_by_stop_id)
 
     if selected_stop_id and selected_stop_id not in map_df['stop_id'].values:
         selected_stop_id = None
 
-    map_figure = build_map_figure(map_df, selected_stop_id=selected_stop_id)
+    if map_df.empty:
+        map_figure = empty_figure('No corridor data for selected filters')
+    else:
+        map_figure = build_map_figure(map_df, route_lines=route_lines, selected_stop_id=selected_stop_id)
 
     if selected_stop_id:
         stop_data = dff[dff['stop_id'] == selected_stop_id]
