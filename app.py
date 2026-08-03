@@ -281,10 +281,8 @@ def make_kpi(title, value='', id=None):
     )
 
 
-def build_map_figure(map_df, route_lines, selected_stop=None):
+def build_map_figure(map_df, selected_stop_id=None):
     fig = go.Figure()
-
-    # hide route lines to reduce clutter and keep only stops visible
 
     if not map_df.empty:
         customdata = list(zip(map_df['stop_id'], map_df['passengers'], map_df['boardings'], map_df['alightings'], map_df['routes'], map_df['route_ids']))
@@ -293,10 +291,11 @@ def build_map_figure(map_df, route_lines, selected_stop=None):
             lon=map_df['longitude'],
             mode='markers',
             marker=dict(
-                size=(map_df['passengers'] / max(map_df['passengers'].max(), 1) * 28).clip(lower=10, upper=34),
+                size=(map_df['passengers'] / max(map_df['passengers'].max(), 1) * 34).clip(lower=12, upper=42),
                 color=map_df['passengers'],
                 colorscale='Blues',
-                opacity=0.9,
+                opacity=0.95,
+                line=dict(width=1, color='white'),
                 colorbar=dict(title='Passengers'),
                 showscale=True,
             ),
@@ -477,27 +476,6 @@ app.layout = dbc.Container(fluid=True, style={'maxWidth': '1500px', 'padding': '
             ], className='shadow-sm mt-4'),
         ], width=6),
     ], className='g-4'),
-    dbc.Row([
-        dbc.Col([
-            dbc.Card([
-                dbc.CardHeader(html.H5('Gold Coast Network Map')),
-                dbc.CardBody([
-                    html.P(
-                        'Reference map for the Gold Coast bus network. Use the PDF as a corridor planning guide while exploring the live route and stop data below.',
-                        className='text-muted',
-                    ),
-                    html.Iframe(
-                        src='/assets/260518-gold-coast-network-map.pdf',
-                        style={'width': '100%', 'height': '650px', 'border': '1px solid #dee2e6'},
-                    ),
-                    html.Div(
-                        html.A('Open full network map in a new tab', href='/assets/260518-gold-coast-network-map.pdf', target='_blank', style={'fontWeight': '600'}),
-                        className='mt-2',
-                    ),
-                ]),
-            ], className='shadow-sm mb-4'),
-        ], width=12),
-    ], className='g-4'),
 ])
 
 
@@ -531,7 +509,7 @@ def update_dashboard(selected_routes, selected_dirs, start_date, end_date, click
     summary_values = [html.Div(value, className='h3 mb-0') for _, value in summary_cards]
 
     stop_lookup = build_stop_location_lookup(sorted(set(dff['stop_name'].astype(str).dropna())) if not dff.empty else [])
-    map_df, route_lines = build_map_data(dff, route_order, stop_lookup)
+    map_df, _ = build_map_data(dff, route_order, stop_lookup)
     selected_stop_id = None
     if isinstance(click_data, dict):
         points = click_data.get('points')
@@ -540,7 +518,7 @@ def update_dashboard(selected_routes, selected_dirs, start_date, end_date, click
             if isinstance(customdata, (list, tuple)) and customdata:
                 selected_stop_id = str(customdata[0])
 
-    map_figure = build_map_figure(map_df, route_lines, selected_stop_id=selected_stop_id)
+    map_figure = build_map_figure(map_df, selected_stop_id=selected_stop_id)
 
     if selected_stop_id:
         stop_data = dff[dff['stop_id'] == selected_stop_id]
