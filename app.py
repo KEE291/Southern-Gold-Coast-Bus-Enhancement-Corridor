@@ -213,19 +213,18 @@ def build_stop_location_lookup(stop_names, cache_path=CACHE_PATH):
 
 
 def build_map_data(dff, route_order, stop_lookup):
-    stop_summary = dff.groupby(['stop_id', 'stop_name'], as_index=False).agg({'passengers': 'sum', 'boardings': 'sum', 'alightings': 'sum'})
-    stop_summary['routes'] = dff.groupby('stop_id')['route_id'].nunique().astype(int).values
+    canonical_names = {
+        stop_id: choose_canonical_stop_name(group['stop_name'].tolist())
+        for stop_id, group in dff.groupby('stop_id')
+    }
+
+    stop_summary = dff.groupby('stop_id', as_index=False).agg({'passengers': 'sum', 'boardings': 'sum', 'alightings': 'sum'})
+    stop_summary['stop_name'] = stop_summary['stop_id'].map(canonical_names).fillna('Unknown')
+    stop_summary['routes'] = stop_summary['stop_id'].map(dff.groupby('stop_id')['route_id'].nunique().astype(int)).fillna(0).astype(int)
     stop_summary = stop_summary.sort_values('passengers', ascending=False)
 
-    canonical_names = {}
-    for stop_id, group in stop_summary.groupby('stop_id'):
-        canonical_names[stop_id] = choose_canonical_stop_name(group['stop_name'].tolist())
-
-    unique_stop_summary = stop_summary.drop_duplicates(subset=['stop_id']).copy()
-    unique_stop_summary['stop_name'] = unique_stop_summary['stop_id'].map(canonical_names)
-
     map_points = []
-    for _, row in unique_stop_summary.iterrows():
+    for _, row in stop_summary.iterrows():
         location = stop_lookup.get(row['stop_name'])
         if location is None:
             continue
@@ -306,22 +305,36 @@ def build_map_figure(map_df, route_lines, selected_stop=None):
                 colorscale='Blues',
                 opacity=0.9,
                 colorbar=dict(title='Passengers'),
+                showscale=True,
             ),
             text=map_df['stop_name'],
             customdata=customdata,
-            hovertemplate='<b>%{text}</b><br>Stop ID: %{customdata[0]}<br>Passengers: %{customdata[1]}<br>Boardings: %{customdata[2]}<br>Alightings: %{customdata[3]}<br>Routes: %{customdata[4]}<br>%{customdata[5]}<extra></extra>',
+            hoverlabel=dict(
+                bgcolor='rgba(255,255,255,0.98)',
+                bordercolor='#2563eb',
+                font=dict(color='#111827', size=12),
+            ),
+            hovertemplate=(
+                '<b>%{text}</b><br>'
+                'Stop ID: %{customdata[0]}<br>'
+                'Passengers: %{customdata[1]:,}<br>'
+                'Boardings: %{customdata[2]:,}<br>'
+                'Alightings: %{customdata[3]:,}<br>'
+                'Routes served: %{customdata[4]}<br>'
+                '<span style="font-size:11px;">%{customdata[5]}</span><extra></extra>'
+            ),
             hoverinfo='text',
             showlegend=False,
         ))
 
-    if selected_stop:
-        selected = map_df[map_df['stop_name'] == selected_stop]
+    if selected_stop_id:
+        selected = map_df[map_df['stop_id'] == selected_stop_id]
         if not selected.empty:
             fig.add_trace(go.Scattermapbox(
                 lat=[selected.iloc[0]['latitude']],
                 lon=[selected.iloc[0]['longitude']],
                 mode='markers',
-                marker=dict(size=32, color='#f59e0b', symbol='star'),
+                marker=dict(size=34, color='#f59e0b', symbol='star'),
                 hoverinfo='skip',
                 showlegend=False,
             ))
@@ -526,23 +539,26 @@ def update_dashboard(selected_routes, selected_dirs, start_date, end_date, click
 
     stop_lookup = build_stop_location_lookup(sorted(set(dff['stop_name'].astype(str).dropna())) if not dff.empty else [])
     map_df, route_lines = build_map_data(dff, route_order, stop_lookup)
-    selected_stop = None
+    selected_stop_id = None
     if isinstance(click_data, dict):
         points = click_data.get('points')
         if isinstance(points, list) and points:
-            selected_stop = points[0].get('text') or (points[0].get('customdata') or [None])[0]
+            customdata = points[0].get('customdata')
+            if isinstance(customdata, (list, tuple)) and customdata:
+                selected_stop_id = str(customdata[0])
 
-    map_figure = build_map_figure(map_df, route_lines, selected_stop=selected_stop)
+    map_figure = build_map_figure(map_df, route_lines, selected_stop_id=selected_stop_id)
 
-    if selected_stop:
-        stop_data = dff[dff['stop_name'] == selected_stop]
+    if selected_stop_id:
+        stop_data = dff[dff['stop_id'] == selected_stop_id]
+        stop_name = stop_data['stop_name'].mode().iloc[0] if not stop_data.empty else selected_stop_id
         stop_total = int(stop_data['passengers'].sum())
         stop_boardings = int(stop_data['boardings'].sum())
         stop_alightings = int(stop_data['alightings'].sum())
         top_routes = stop_data.groupby('route_id', as_index=False).agg({'passengers': 'sum'}).sort_values('passengers', ascending=False).head(5)
         route_list = [html.Li(f"{row['route_id']} — {int(row['passengers']):,} passengers") for _, row in top_routes.iterrows()]
         detail = dbc.Card([
-            dbc.CardHeader(f'{selected_stop}'),
+            dbc.CardHeader(f'{stop_name} ({selected_stop_id})'),
             dbc.CardBody([
                 html.Div(f'Total passengers: {stop_total:,}', className='mb-2'),
                 html.Div(f'Boardings: {stop_boardings:,}', className='mb-2'),
