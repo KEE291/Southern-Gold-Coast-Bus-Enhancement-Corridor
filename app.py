@@ -298,7 +298,6 @@ def build_map_figure(map_df, selected_stop_id=None):
                 color=map_df['passengers'],
                 colorscale='Blues',
                 opacity=0.95,
-                line=dict(width=1, color='white'),
                 colorbar=dict(title='Passengers'),
                 showscale=True,
             ),
