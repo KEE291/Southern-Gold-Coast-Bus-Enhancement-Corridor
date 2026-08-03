@@ -9,7 +9,6 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import requests
 from dash import Dash, Input, Output, dcc, html, dash_table
 
 
@@ -135,6 +134,17 @@ def safe_days(dff):
     return 1
 
 
+def choose_canonical_stop_name(names):
+    names = [str(n).strip() for n in names if str(n).strip()]
+    if not names:
+        return ''
+    bad_pattern = re.compile(r'closed|closure|night closures?|until|from\s+\d', re.I)
+    preferred = [name for name in names if not bad_pattern.search(name)]
+    candidates = preferred or names
+    counts = pd.Series(candidates).value_counts()
+    return counts.index[0]
+
+
 def empty_figure(title='No data available'):
     fig = go.Figure()
     fig.add_annotation(
@@ -180,30 +190,11 @@ def fallback_coordinates(stop_name):
     return {'latitude': round(lat, 5), 'longitude': round(lon, 5)}
 
 
-def geocode_stop(stop_name, cache=None):
+def resolve_stop_location(stop_name, cache=None):
     if cache is None:
         cache = {}
     if stop_name in cache:
         return cache[stop_name]
-
-    query = f"{stop_name}, Gold Coast, Queensland, Australia"
-    try:
-        response = requests.get(
-            'https://nominatim.openstreetmap.org/search',
-            params={'q': query, 'format': 'jsonv2', 'limit': 1},
-            headers={'User-Agent': 'southern-gold-coast-bus-app/1.0'},
-            timeout=10,
-        )
-        response.raise_for_status()
-        payload = response.json()
-        if payload:
-            lat = float(payload[0]['lat'])
-            lon = float(payload[0]['lon'])
-            result = {'latitude': round(lat, 5), 'longitude': round(lon, 5)}
-            cache[stop_name] = result
-            return result
-    except Exception:
-        pass
 
     result = fallback_coordinates(stop_name)
     cache[stop_name] = result
@@ -216,22 +207,31 @@ def build_stop_location_lookup(stop_names, cache_path=CACHE_PATH):
     unique_names = sorted(set(stop_names))
     resolved = {}
     for stop_name in unique_names:
-        resolved[stop_name] = geocode_stop(stop_name, cache=cache)
+        resolved[stop_name] = resolve_stop_location(stop_name, cache=cache)
     save_stop_location_cache(cache, cache_path)
     return resolved
 
 
 def build_map_data(dff, route_order, stop_lookup):
-    stop_summary = dff.groupby(['stop_name'], as_index=False).agg({'passengers': 'sum', 'boardings': 'sum', 'alightings': 'sum'})
-    stop_summary['routes'] = dff.groupby('stop_name')['route_id'].nunique().astype(int).values
+    stop_summary = dff.groupby(['stop_id', 'stop_name'], as_index=False).agg({'passengers': 'sum', 'boardings': 'sum', 'alightings': 'sum'})
+    stop_summary['routes'] = dff.groupby('stop_id')['route_id'].nunique().astype(int).values
     stop_summary = stop_summary.sort_values('passengers', ascending=False)
 
+    canonical_names = {}
+    for stop_id, group in stop_summary.groupby('stop_id'):
+        canonical_names[stop_id] = choose_canonical_stop_name(group['stop_name'].tolist())
+
+    unique_stop_summary = stop_summary.drop_duplicates(subset=['stop_id']).copy()
+    unique_stop_summary['stop_name'] = unique_stop_summary['stop_id'].map(canonical_names)
+
     map_points = []
-    for _, row in stop_summary.iterrows():
+    for _, row in unique_stop_summary.iterrows():
         location = stop_lookup.get(row['stop_name'])
         if location is None:
             continue
+        route_ids = sorted(dff.loc[dff['stop_id'] == row['stop_id'], 'route_id'].dropna().astype(str).unique())
         map_points.append({
+            'stop_id': row['stop_id'],
             'stop_name': row['stop_name'],
             'passengers': int(row['passengers']),
             'boardings': int(row['boardings']),
@@ -239,24 +239,24 @@ def build_map_data(dff, route_order, stop_lookup):
             'routes': int(row['routes']),
             'latitude': location['latitude'],
             'longitude': location['longitude'],
-            'route_ids': ', '.join(sorted(dff.loc[dff['stop_name'] == row['stop_name'], 'route_id'].dropna().astype(str).unique())),
+            'route_ids': ', '.join(route_ids),
         })
 
     map_df = pd.DataFrame(map_points)
     if map_df.empty:
-        return map_df
+        return map_df, []
 
     route_lines = []
     if not route_order.empty:
         route_order = route_order.copy()
-        route_order['stop_name'] = route_order['stop_name'].astype(str).str.strip()
-        route_order = route_order[route_order['stop_name'].isin(map_df['stop_name'])]
+        route_order['stop_id'] = route_order['stop_id'].astype(str).str.strip()
+        route_order = route_order[route_order['stop_id'].isin(map_df['stop_id'])]
         for route_id in sorted(route_order['route_id'].dropna().unique()):
             for direction in sorted(route_order.loc[route_order['route_id'] == route_id, 'direction'].dropna().unique()):
                 ordered = route_order[(route_order['route_id'] == route_id) & (route_order['direction'] == direction)].sort_values('stop_sequence')
                 if ordered.empty or len(ordered) < 2:
                     continue
-                ordered = ordered.merge(map_df[['stop_name', 'latitude', 'longitude']], on='stop_name', how='left')
+                ordered = ordered.merge(map_df[['stop_id', 'latitude', 'longitude']], on='stop_id', how='left')
                 if ordered[['latitude', 'longitude']].notna().all().all():
                     route_lines.append({
                         'route_id': route_id,
@@ -287,26 +287,29 @@ def build_map_figure(map_df, route_lines, selected_stop=None):
             lat=route['lat'],
             lon=route['lon'],
             mode='lines',
-            line={'width': 3, 'color': '#1d4ed8'},
-            hoverinfo='skip',
+            line={'width': 4, 'color': '#2563eb', 'dash': 'solid'},
+            hovertext=f"Route {route['route_id']} — {route['direction']}",
+            hoverinfo='text',
+            opacity=0.75,
             showlegend=False,
         ))
 
     if not map_df.empty:
+        customdata = list(zip(map_df['stop_id'], map_df['passengers'], map_df['boardings'], map_df['alightings'], map_df['routes'], map_df['route_ids']))
         fig.add_trace(go.Scattermapbox(
             lat=map_df['latitude'],
             lon=map_df['longitude'],
             mode='markers',
             marker=dict(
-                size=(map_df['passengers'] / max(map_df['passengers'].max(), 1) * 24).clip(lower=8, upper=28),
+                size=(map_df['passengers'] / max(map_df['passengers'].max(), 1) * 28).clip(lower=10, upper=34),
                 color=map_df['passengers'],
-                colorscale='Viridis',
-                opacity=0.95,
+                colorscale='Blues',
+                opacity=0.9,
                 colorbar=dict(title='Passengers'),
             ),
             text=map_df['stop_name'],
-            customdata=list(zip(map_df['stop_name'], map_df['route_ids'])),
-            hovertemplate='<b>%{text}</b><br>Passengers: %{customdata[1]}<extra></extra>',
+            customdata=customdata,
+            hovertemplate='<b>%{text}</b><br>Stop ID: %{customdata[0]}<br>Passengers: %{customdata[1]}<br>Boardings: %{customdata[2]}<br>Alightings: %{customdata[3]}<br>Routes: %{customdata[4]}<br>%{customdata[5]}<extra></extra>',
             hoverinfo='text',
             showlegend=False,
         ))
@@ -349,14 +352,16 @@ def build_summary_cards(dff):
     avg_daily = round(total / safe_days(dff), 1) if not dff.empty else 0
     weekday = int(dff.loc[dff['date'].dt.dayofweek < 5, 'passengers'].sum()) if not dff.empty and dff['date'].notna().any() else 0
     weekend = int(dff.loc[dff['date'].dt.dayofweek >= 5, 'passengers'].sum()) if not dff.empty and dff['date'].notna().any() else 0
+    route_count = len(route_summary)
+    stop_count = len(stop_summary)
 
     return [
         ('Total passengers', f'{total:,}'),
+        ('Routes in view', f'{route_count:,}'),
+        ('Stops in view', f'{stop_count:,}'),
         ('Top route', dominant_route),
         ('Top stop', dominant_stop),
         ('Avg daily', f'{avg_daily:,}'),
-        ('Weekday', f'{weekday:,}'),
-        ('Weekend', f'{weekend:,}'),
     ]
 
 
@@ -407,14 +412,20 @@ app.layout = dbc.Container(fluid=True, style={'maxWidth': '1500px', 'padding': '
             dbc.Card([
                 dbc.CardHeader(html.H5('Interactive Corridor Map')),
                 dbc.CardBody([
-                    dcc.Graph(id='corridor-map', figure=empty_figure('Loading corridor map'), config={'displayModeBar': False}, clear_on_unhover=True),
+                    dcc.Graph(
+                        id='corridor-map',
+                        figure=empty_figure('Loading corridor map'),
+                        config={'displayModeBar': False, 'scrollZoom': True},
+                        clear_on_unhover=True,
+                        style={'height': '700px', 'width': '100%'},
+                    ),
                 ]),
             ], className='shadow-sm'),
         ], width=8),
         dbc.Col([
             dbc.Card([
                 dbc.CardHeader(html.H5('Selection Detail')),
-                dbc.CardBody(id='selection-detail'),
+                dbc.CardBody(id='selection-detail', style={'minHeight': '220px', 'backgroundColor': '#f8fafc'}),
             ], className='shadow-sm mb-4'),
             dbc.Card([
                 dbc.CardHeader(html.H5('Top Stops')),
@@ -430,8 +441,17 @@ app.layout = dbc.Container(fluid=True, style={'maxWidth': '1500px', 'padding': '
                         page_size=8,
                         sort_action='native',
                         style_table={'overflowX': 'auto'},
-                        style_cell={'textAlign': 'left', 'padding': '8px'},
-                        style_header={'backgroundColor': '#f8f9fa', 'fontWeight': 'bold'},
+                        style_cell={'textAlign': 'left', 'padding': '10px', 'whiteSpace': 'normal', 'height': 'auto'},
+                        style_cell_conditional=[
+                            {'if': {'column_id': 'stop_name'}, 'width': '45%'},
+                            {'if': {'column_id': 'passengers'}, 'width': '18%'},
+                            {'if': {'column_id': 'boardings'}, 'width': '18%'},
+                            {'if': {'column_id': 'alightings'}, 'width': '18%'},
+                        ],
+                        style_header={'backgroundColor': '#eef2ff', 'fontWeight': 'bold', 'borderBottom': '2px solid #c7d2fe'},
+                        style_data_conditional=[
+                            {'if': {'row_index': 'odd'}, 'backgroundColor': '#f8fafc'},
+                        ],
                     ),
                 ]),
             ], className='shadow-sm'),
@@ -450,6 +470,27 @@ app.layout = dbc.Container(fluid=True, style={'maxWidth': '1500px', 'padding': '
                 dbc.CardBody(dcc.Graph(id='boarding-chart', figure=empty_figure('Loading boarding chart'), config={'displayModeBar': False})),
             ], className='shadow-sm mt-4'),
         ], width=6),
+    ], className='g-4'),
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader(html.H5('Gold Coast Network Map')),
+                dbc.CardBody([
+                    html.P(
+                        'Reference map for the Gold Coast bus network. Use the PDF as a corridor planning guide while exploring the live route and stop data below.',
+                        className='text-muted',
+                    ),
+                    html.Iframe(
+                        src='/assets/260518-gold-coast-network-map.pdf',
+                        style={'width': '100%', 'height': '650px', 'border': '1px solid #dee2e6'},
+                    ),
+                    html.Div(
+                        html.A('Open full network map in a new tab', href='/assets/260518-gold-coast-network-map.pdf', target='_blank', style={'fontWeight': '600'}),
+                        className='mt-2',
+                    ),
+                ]),
+            ], className='shadow-sm mb-4'),
+        ], width=12),
     ], className='g-4'),
 ])
 
@@ -486,8 +527,10 @@ def update_dashboard(selected_routes, selected_dirs, start_date, end_date, click
     stop_lookup = build_stop_location_lookup(sorted(set(dff['stop_name'].astype(str).dropna())) if not dff.empty else [])
     map_df, route_lines = build_map_data(dff, route_order, stop_lookup)
     selected_stop = None
-    if click_data and click_data.get('points'):
-        selected_stop = click_data['points'][0].get('text') or click_data['points'][0].get('customdata', [None])[0]
+    if isinstance(click_data, dict):
+        points = click_data.get('points')
+        if isinstance(points, list) and points:
+            selected_stop = points[0].get('text') or (points[0].get('customdata') or [None])[0]
 
     map_figure = build_map_figure(map_df, route_lines, selected_stop=selected_stop)
 
@@ -529,10 +572,22 @@ def update_dashboard(selected_routes, selected_dirs, start_date, end_date, click
     boarding_fig = px.bar(boardings, x='stop_name', y=['boardings', 'alightings'], barmode='group', title='Boardings vs alightings', template='plotly_white')
     boarding_fig.update_layout(xaxis_tickangle=-35, margin={'t': 45})
 
-    return [html.Div(value, className='h3 mb-0') for _, value in summary_cards], map_figure, detail, stop_table, trend_fig, boarding_fig
+    return (
+        summary_values[0],
+        summary_values[1],
+        summary_values[2],
+        summary_values[3],
+        summary_values[4],
+        summary_values[5],
+        map_figure,
+        detail,
+        stop_table,
+        trend_fig,
+        boarding_fig,
+    )
 
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8050))
-    debug = os.environ.get('DEBUG', 'true').lower() in ('1', 'true', 'yes')
-    app.run_server(debug=debug, host='127.0.0.1', port=port)
+    debug = os.environ.get('DEBUG', 'false').lower() in ('1', 'true', 'yes')
+    app.run_server(debug=debug, host='127.0.0.1', port=port, use_reloader=False)

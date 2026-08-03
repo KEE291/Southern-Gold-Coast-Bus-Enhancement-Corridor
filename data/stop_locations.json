@@ -1,0 +1,1470 @@
+{
+  "Ada Bell Way at Broadwater Parklands station": {
+    "latitude": -28.1435,
+    "longitude": 153.3015
+  },
+  "Armrick Av at Broadbeach Boulevard": {
+    "latitude": -28.141,
+    "longitude": 153.304
+  },
+  "Ashmore Rd at Campbell Street": {
+    "latitude": -28.1499,
+    "longitude": 153.3101
+  },
+  "Ashmore Rd at Sir Bruce Small Park": {
+    "latitude": -28.14315,
+    "longitude": 153.30185
+  },
+  "Ashmore Road Commercial Precinct": {
+    "latitude": -28.14645,
+    "longitude": 153.31355
+  },
+  "Avocado St at Jarrahdale Dr": {
+    "latitude": -28.14675,
+    "longitude": 153.30825
+  },
+  "Bardon Ave near Landau Ct": {
+    "latitude": -28.1493,
+    "longitude": 153.3007
+  },
+  "Barrier Reef Dr near Deloraine Ct": {
+    "latitude": -28.14775,
+    "longitude": 153.30725
+  },
+  "Barrier Reef Dr near Halborne Dr": {
+    "latitude": -28.1465,
+    "longitude": 153.3085
+  },
+  "Barrier Reef Dr near Hayman Ct": {
+    "latitude": -28.1409,
+    "longitude": 153.3091
+  },
+  "Barrier Reef Dr near Henning Ct": {
+    "latitude": -28.14715,
+    "longitude": 153.30785
+  },
+  "Barrier Reef Dr near Normanby St": {
+    "latitude": -28.14195,
+    "longitude": 153.30305
+  },
+  "Barrier Reef Dr near Orpheus Rd": {
+    "latitude": -28.14165,
+    "longitude": 153.30835
+  },
+  "Barrier Reef Dr near Peninsula Ct": {
+    "latitude": -28.1404,
+    "longitude": 153.3096
+  },
+  "Barrier Reef Dr near Rio Vista Bvd": {
+    "latitude": -28.1401,
+    "longitude": 153.3099
+  },
+  "Barrier Reef Dr near Wild Duck Dr": {
+    "latitude": -28.1431,
+    "longitude": 153.3069
+  },
+  "Beenleigh": {
+    "latitude": -28.14685,
+    "longitude": 153.30815
+  },
+  "Benowa Rd at Benowa Gardens": {
+    "latitude": -28.1454,
+    "longitude": 153.3096
+  },
+  "Benowa Rd at Drury Avenue": {
+    "latitude": -28.1474,
+    "longitude": 153.3076
+  },
+  "Benowa Rd at Sapium Road": {
+    "latitude": -28.14685,
+    "longitude": 153.30815
+  },
+  "Bermuda St at Albert Park": {
+    "latitude": -28.1484,
+    "longitude": 153.3116
+  },
+  "Bermuda St at Hooker Boulevard": {
+    "latitude": -28.14425,
+    "longitude": 153.30575
+  },
+  "Bermuda St at Lake Orr": {
+    "latitude": -28.14025,
+    "longitude": 153.30475
+  },
+  "Bermuda St at Sophie Ave": {
+    "latitude": -28.15,
+    "longitude": 153.31
+  },
+  "Bienvenue Dr near Border Dr": {
+    "latitude": -28.1431,
+    "longitude": 153.3019
+  },
+  "Bond University": {
+    "latitude": -28.14985,
+    "longitude": 153.30015
+  },
+  "Bourton Rd near Willunga Pl": {
+    "latitude": -28.14315,
+    "longitude": 153.30185
+  },
+  "Boyd St near Morshead St": {
+    "latitude": -28.14125,
+    "longitude": 153.30875
+  },
+  "Breakspear Rd at Mahogany Hill Park": {
+    "latitude": -28.1457,
+    "longitude": 153.3093
+  },
+  "Broadbeach North": {
+    "latitude": -28.1469,
+    "longitude": 153.3031
+  },
+  "Broadbeach North station": {
+    "latitude": -28.1419,
+    "longitude": 153.3081
+  },
+  "Broadbeach South": {
+    "latitude": -28.1483,
+    "longitude": 153.3067
+  },
+  "Broadbeach South station": {
+    "latitude": -28.14735,
+    "longitude": 153.30765
+  },
+  "Broadbeach South station, stop A": {
+    "latitude": -28.1461,
+    "longitude": 153.3089
+  },
+  "Broadbeach South station, stop B": {
+    "latitude": -28.14905,
+    "longitude": 153.31095
+  },
+  "Broadbeach South station, stop C": {
+    "latitude": -28.1439,
+    "longitude": 153.3011
+  },
+  "Broadbeach South station, stop D": {
+    "latitude": -28.14195,
+    "longitude": 153.30305
+  },
+  "Broadwater Parklands": {
+    "latitude": -28.14725,
+    "longitude": 153.30775
+  },
+  "Brooke Ave at Musgrave Avenue": {
+    "latitude": -28.1405,
+    "longitude": 153.3045
+  },
+  "Bundall Rd at City of Gold Coast": {
+    "latitude": -28.1463,
+    "longitude": 153.3087
+  },
+  "Bundall Rd at Pisa Court": {
+    "latitude": -28.14675,
+    "longitude": 153.30325
+  },
+  "Bundall Rd at Salerno Street": {
+    "latitude": -28.14265,
+    "longitude": 153.30735
+  },
+  "Bundall Rd at Sorrento Shopping Village": {
+    "latitude": -28.14515,
+    "longitude": 153.31485
+  },
+  "Burleigh Heads National Park": {
+    "latitude": -28.14605,
+    "longitude": 153.30895
+  },
+  "Burleigh Heads Primary School": {
+    "latitude": -28.1492,
+    "longitude": 153.3008
+  },
+  "Burleigh Heads Primary School CLOSED PERMANENTLY": {
+    "latitude": -28.14185,
+    "longitude": 153.31315
+  },
+  "Cabarita Ave near Kallena St": {
+    "latitude": -28.14605,
+    "longitude": 153.30895
+  },
+  "Cahill Street": {
+    "latitude": -28.1464,
+    "longitude": 153.3086
+  },
+  "Cannon Dr near The Cross Rd": {
+    "latitude": -28.14435,
+    "longitude": 153.31065
+  },
+  "Casuarina Dr at Ottelia Drive": {
+    "latitude": -28.1462,
+    "longitude": 153.3088
+  },
+  "Cavill Avenue": {
+    "latitude": -28.14195,
+    "longitude": 153.30305
+  },
+  "Central": {
+    "latitude": -28.14895,
+    "longitude": 153.30605
+  },
+  "Cheltenham Dr near Thorngate Dr": {
+    "latitude": -28.1407,
+    "longitude": 153.3093
+  },
+  "Christine Ave at Barbet Place": {
+    "latitude": -28.14195,
+    "longitude": 153.30805
+  },
+  "Christine Ave at Bermuda Street": {
+    "latitude": -28.1449,
+    "longitude": 153.3001
+  },
+  "Christine Ave at Burleigh Waters Library": {
+    "latitude": -28.14325,
+    "longitude": 153.30175
+  },
+  "Christine Ave at Caningeraba State School": {
+    "latitude": -28.14115,
+    "longitude": 153.30885
+  },
+  "Christine Ave at Goldwater Drive": {
+    "latitude": -28.14945,
+    "longitude": 153.31055
+  },
+  "Christine Ave at Hibiscus Haven": {
+    "latitude": -28.1426,
+    "longitude": 153.3024
+  },
+  "Christine Ave at Hillstar Avenue": {
+    "latitude": -28.1498,
+    "longitude": 153.3052
+  },
+  "Christine Ave at Konda Way": {
+    "latitude": -28.1402,
+    "longitude": 153.3148
+  },
+  "Christine Ave at Olympus Drive": {
+    "latitude": -28.14235,
+    "longitude": 153.31265
+  },
+  "Christine Ave at Pennsylvania Avenue": {
+    "latitude": -28.1485,
+    "longitude": 153.3015
+  },
+  "Christine Ave at Regensberg Close": {
+    "latitude": -28.1428,
+    "longitude": 153.3072
+  },
+  "Christine Ave at Scottsdale Drive": {
+    "latitude": -28.14635,
+    "longitude": 153.30865
+  },
+  "Christine Ave at Silvabank Drive": {
+    "latitude": -28.142,
+    "longitude": 153.313
+  },
+  "Christine Ave at Spoonbill Court": {
+    "latitude": -28.1446,
+    "longitude": 153.3104
+  },
+  "Christine Ave at The Crestway": {
+    "latitude": -28.14705,
+    "longitude": 153.30795
+  },
+  "Christine Ave at Varsity College": {
+    "latitude": -28.14835,
+    "longitude": 153.31165
+  },
+  "Christine Ave at Varsity Sound Avenue": {
+    "latitude": -28.1459,
+    "longitude": 153.3091
+  },
+  "Christine Avenue": {
+    "latitude": -28.14405,
+    "longitude": 153.30095
+  },
+  "Christine Avenue CLOSED until April 2026": {
+    "latitude": -28.14295,
+    "longitude": 153.31205
+  },
+  "Classic Way at Treetops Plaza": {
+    "latitude": -28.1498,
+    "longitude": 153.3052
+  },
+  "Cleveland": {
+    "latitude": -28.14445,
+    "longitude": 153.30055
+  },
+  "Clives Cct at Hoffschildt Drive": {
+    "latitude": -28.14995,
+    "longitude": 153.31005
+  },
+  "Clives Cct near Bernoth St": {
+    "latitude": -28.14565,
+    "longitude": 153.30435
+  },
+  "Clives Cct near Robinson Pl": {
+    "latitude": -28.1447,
+    "longitude": 153.3003
+  },
+  "Coolangatta Central": {
+    "latitude": -28.1495,
+    "longitude": 153.3005
+  },
+  "Coolangatta Rd near Loongana Ave": {
+    "latitude": -28.1436,
+    "longitude": 153.3064
+  },
+  "Coolibah Cr near Willow St": {
+    "latitude": -28.14775,
+    "longitude": 153.31225
+  },
+  "Coomera": {
+    "latitude": -28.1444,
+    "longitude": 153.3006
+  },
+  "Cottesloe Dr near Bermuda St": {
+    "latitude": -28.1409,
+    "longitude": 153.3091
+  },
+  "Cottesloe Dr near Kirup St": {
+    "latitude": -28.1461,
+    "longitude": 153.3139
+  },
+  "Cottesloe Dr near University Dr": {
+    "latitude": -28.1475,
+    "longitude": 153.3125
+  },
+  "Cottesloe Dr near Vancouver Dr": {
+    "latitude": -28.1419,
+    "longitude": 153.3131
+  },
+  "Crescent Avenue": {
+    "latitude": -28.1458,
+    "longitude": 153.3142
+  },
+  "Cultural Centre station, platform 1": {
+    "latitude": -28.14605,
+    "longitude": 153.30395
+  },
+  "Cumberland Dr near Silvabank Dr": {
+    "latitude": -28.1476,
+    "longitude": 153.3124
+  },
+  "Cumberland Dr near Yodelay St": {
+    "latitude": -28.14425,
+    "longitude": 153.31075
+  },
+  "Currumbin Creek Rd at Currumbin RSL": {
+    "latitude": -28.14265,
+    "longitude": 153.30735
+  },
+  "Currumbin Creek Rd at Love Street": {
+    "latitude": -28.14085,
+    "longitude": 153.30915
+  },
+  "Currumbin Creek Rd near Bienvenue Dr": {
+    "latitude": -28.14595,
+    "longitude": 153.30405
+  },
+  "Currumbin Creek Rd near Teatree Ave": {
+    "latitude": -28.14855,
+    "longitude": 153.31145
+  },
+  "Currumbin Creek Rd near Villiers Dr": {
+    "latitude": -28.1425,
+    "longitude": 153.3075
+  },
+  "Currumbin Wildlife Sanctuary": {
+    "latitude": -28.1409,
+    "longitude": 153.3091
+  },
+  "Cypress Avenue": {
+    "latitude": -28.14975,
+    "longitude": 153.30025
+  },
+  "Duringan St near Woodgee St": {
+    "latitude": -28.1428,
+    "longitude": 153.3122
+  },
+  "Elizabeth Av at Oracle Boulevard": {
+    "latitude": -28.14105,
+    "longitude": 153.30395
+  },
+  "Ferny Ave at Ocean Avenue": {
+    "latitude": -28.1429,
+    "longitude": 153.3021
+  },
+  "Ferny Ave at Palm Avenue": {
+    "latitude": -28.14345,
+    "longitude": 153.30655
+  },
+  "Ferry Rd at Harvest Court": {
+    "latitude": -28.14335,
+    "longitude": 153.30665
+  },
+  "Ferry Rd at York Street": {
+    "latitude": -28.1417,
+    "longitude": 153.3033
+  },
+  "Florida Gardens": {
+    "latitude": -28.14735,
+    "longitude": 153.30765
+  },
+  "GC Hwy at Palm Beach Hotel": {
+    "latitude": -28.1495,
+    "longitude": 153.3105
+  },
+  "GC Hwy at Palm Beach Hotel CLOSED 6 Oct - 20 Dec 2027": {
+    "latitude": -28.14515,
+    "longitude": 153.30985
+  },
+  "GCUH, platform 3": {
+    "latitude": -28.14105,
+    "longitude": 153.30395
+  },
+  "GCUH, platform 4": {
+    "latitude": -28.14165,
+    "longitude": 153.31335
+  },
+  "Galleon Way at Aegean Way": {
+    "latitude": -28.14925,
+    "longitude": 153.30575
+  },
+  "Galleon Way at Brigantine Court": {
+    "latitude": -28.1496,
+    "longitude": 153.3004
+  },
+  "Galleon Way near Billabong Ct": {
+    "latitude": -28.1452,
+    "longitude": 153.3098
+  },
+  "Galleon Way near Brigantine Ct": {
+    "latitude": -28.14825,
+    "longitude": 153.30175
+  },
+  "Galleon Way near Keegan Cct": {
+    "latitude": -28.1442,
+    "longitude": 153.3058
+  },
+  "Ghilgai Rd near Entry Dr": {
+    "latitude": -28.14725,
+    "longitude": 153.30275
+  },
+  "Ghilgai Rd near Griffon St": {
+    "latitude": -28.1458,
+    "longitude": 153.3042
+  },
+  "Gilston Rd at Longhill Road": {
+    "latitude": -28.1429,
+    "longitude": 153.3071
+  },
+  "Gilston Rd at Worley Drive": {
+    "latitude": -28.1455,
+    "longitude": 153.3095
+  },
+  "Gold Coast Airport": {
+    "latitude": -28.14035,
+    "longitude": 153.31465
+  },
+  "Gold Coast Hwy at Anzac Parade": {
+    "latitude": -28.14965,
+    "longitude": 153.30035
+  },
+  "Gold Coast Hwy at Burleigh Heads": {
+    "latitude": -28.1442,
+    "longitude": 153.3058
+  },
+  "Gold Coast Hwy at Cronulla Av": {
+    "latitude": -28.14295,
+    "longitude": 153.30705
+  },
+  "Gold Coast Hwy at Currumbin Hill": {
+    "latitude": -28.14635,
+    "longitude": 153.30865
+  },
+  "Gold Coast Hwy at Eighth Avenue": {
+    "latitude": -28.1464,
+    "longitude": 153.3086
+  },
+  "Gold Coast Hwy at Fifteenth Avenue": {
+    "latitude": -28.14365,
+    "longitude": 153.30635
+  },
+  "Gold Coast Hwy at Florida Gardens station": {
+    "latitude": -28.14405,
+    "longitude": 153.31095
+  },
+  "Gold Coast Hwy at Fourth Avenue": {
+    "latitude": -28.1497,
+    "longitude": 153.3003
+  },
+  "Gold Coast Hwy at Hythe Street": {
+    "latitude": -28.1415,
+    "longitude": 153.3135
+  },
+  "Gold Coast Hwy at Marble Arch Place": {
+    "latitude": -28.14515,
+    "longitude": 153.30985
+  },
+  "Gold Coast Hwy at Miami Hotel": {
+    "latitude": -28.1413,
+    "longitude": 153.3037
+  },
+  "Gold Coast Hwy at Palm Beach Police Station": {
+    "latitude": -28.14295,
+    "longitude": 153.31205
+  },
+  "Gold Coast Hwy at RACQ": {
+    "latitude": -28.14815,
+    "longitude": 153.30185
+  },
+  "Gold Coast Hwy at Santa Monica Road": {
+    "latitude": -28.1429,
+    "longitude": 153.3021
+  },
+  "Gold Coast Hwy at Tallebudgera Tourist Park": {
+    "latitude": -28.1448,
+    "longitude": 153.3052
+  },
+  "Gold Coast Hwy at Tenth Avenue": {
+    "latitude": -28.1486,
+    "longitude": 153.3114
+  },
+  "Gold Coast Hwy at Third Avenue": {
+    "latitude": -28.14065,
+    "longitude": 153.30935
+  },
+  "Gold Coast Hwy at Third Avenue CLOSED until April 2026": {
+    "latitude": -28.14645,
+    "longitude": 153.31355
+  },
+  "Gold Coast Hwy at Thirteenth Avenue": {
+    "latitude": -28.14175,
+    "longitude": 153.30825
+  },
+  "Gold Coast Hwy at Thrower Drive": {
+    "latitude": -28.1432,
+    "longitude": 153.3018
+  },
+  "Gold Coast Hwy at Twenty Fifth Avenue": {
+    "latitude": -28.1471,
+    "longitude": 153.3129
+  },
+  "Gold Coast Hwy at Twenty First Avenue": {
+    "latitude": -28.14945,
+    "longitude": 153.31055
+  },
+  "Gold Coast University Hospital": {
+    "latitude": -28.14515,
+    "longitude": 153.31485
+  },
+  "Golden Four Dr at Archer Street": {
+    "latitude": -28.1476,
+    "longitude": 153.3074
+  },
+  "Golden Four Dr at Bilinga Beach": {
+    "latitude": -28.1444,
+    "longitude": 153.3106
+  },
+  "Golden Four Dr at Bilinga Beach SLSC": {
+    "latitude": -28.14535,
+    "longitude": 153.30965
+  },
+  "Golden Four Dr at George Street": {
+    "latitude": -28.1467,
+    "longitude": 153.3133
+  },
+  "Golden Four Dr at North Kirra Beach": {
+    "latitude": -28.14425,
+    "longitude": 153.30575
+  },
+  "Golden Four Dr at Shell Street": {
+    "latitude": -28.14725,
+    "longitude": 153.30775
+  },
+  "Golden Four Dr at Short Street": {
+    "latitude": -28.14975,
+    "longitude": 153.31025
+  },
+  "Golden Four Dr at Tugun Beach shops": {
+    "latitude": -28.14625,
+    "longitude": 153.30875
+  },
+  "Golden Four Drive at St Monica's Catholic Church": {
+    "latitude": -28.14345,
+    "longitude": 153.31155
+  },
+  "Gooding Dr at Jondique Avenue": {
+    "latitude": -28.145,
+    "longitude": 153.31
+  },
+  "Gooding Dr at Merrimac Golf Course": {
+    "latitude": -28.14645,
+    "longitude": 153.30855
+  },
+  "Gooding Dr at Merrimac Primary School": {
+    "latitude": -28.1495,
+    "longitude": 153.3055
+  },
+  "Gooding Dr at Palm Meadows Drive": {
+    "latitude": -28.14305,
+    "longitude": 153.31195
+  },
+  "Gooding Rd at Cararra Markets": {
+    "latitude": -28.14395,
+    "longitude": 153.31105
+  },
+  "Griffith St at Coolangatta East": {
+    "latitude": -28.1409,
+    "longitude": 153.3041
+  },
+  "Griffith University": {
+    "latitude": -28.14415,
+    "longitude": 153.30585
+  },
+  "Griffith University, platform 3": {
+    "latitude": -28.14835,
+    "longitude": 153.31165
+  },
+  "Griffith University, platform 4": {
+    "latitude": -28.14825,
+    "longitude": 153.31175
+  },
+  "Heeb St at Gold Coast TAFE Ashmore": {
+    "latitude": -28.14915,
+    "longitude": 153.30585
+  },
+  "Helensvale": {
+    "latitude": -28.14605,
+    "longitude": 153.31395
+  },
+  "Helensvale light rail": {
+    "latitude": -28.14395,
+    "longitude": 153.30605
+  },
+  "Helensvale station": {
+    "latitude": -28.14805,
+    "longitude": 153.31195
+  },
+  "Highfield Dr near All Saints Anglican School": {
+    "latitude": -28.14805,
+    "longitude": 153.30195
+  },
+  "Highfield Dr near Breakwater Road": {
+    "latitude": -28.14395,
+    "longitude": 153.30105
+  },
+  "Highfield Dr near Cabot Ct": {
+    "latitude": -28.1488,
+    "longitude": 153.3012
+  },
+  "Honeyeater Dr at Thornbill Place": {
+    "latitude": -28.14095,
+    "longitude": 153.30905
+  },
+  "Hop St at Seabrook Street": {
+    "latitude": -28.1427,
+    "longitude": 153.3073
+  },
+  "Ironbark St at Angelica Street": {
+    "latitude": -28.14975,
+    "longitude": 153.30525
+  },
+  "Ironbark St at Boab Street": {
+    "latitude": -28.1421,
+    "longitude": 153.3129
+  },
+  "Ironbark St near Angelica St": {
+    "latitude": -28.14495,
+    "longitude": 153.31005
+  },
+  "Ironbark St near Avocado St": {
+    "latitude": -28.141,
+    "longitude": 153.304
+  },
+  "Ironbark St near Daisy St": {
+    "latitude": -28.14825,
+    "longitude": 153.31175
+  },
+  "Johnston Street": {
+    "latitude": -28.15,
+    "longitude": 153.305
+  },
+  "KP McGrath Dr at Elanora State School": {
+    "latitude": -28.14685,
+    "longitude": 153.31315
+  },
+  "KP McGrath Dr at Murtha Drive": {
+    "latitude": -28.14585,
+    "longitude": 153.30415
+  },
+  "KP McGrath Dr at Seaview Parade": {
+    "latitude": -28.1451,
+    "longitude": 153.3099
+  },
+  "KP McGrath Dr near Angelica St": {
+    "latitude": -28.14185,
+    "longitude": 153.30815
+  },
+  "KP McGrath Dr near Exmouth Cr": {
+    "latitude": -28.14215,
+    "longitude": 153.30785
+  },
+  "KP McGrath Dr near Murtha Dr": {
+    "latitude": -28.142,
+    "longitude": 153.303
+  },
+  "KP McGrath Dr near Seaview Pde": {
+    "latitude": -28.1453,
+    "longitude": 153.3097
+  },
+  "King George Square station, platform 2A": {
+    "latitude": -28.1438,
+    "longitude": 153.3062
+  },
+  "Lake St near Central Park Dr": {
+    "latitude": -28.15,
+    "longitude": 153.3
+  },
+  "Landsborough station, stop A": {
+    "latitude": -28.1401,
+    "longitude": 153.3049
+  },
+  "Logan Rd at Upper Mt Gravatt School, stop 43": {
+    "latitude": -28.14915,
+    "longitude": 153.30085
+  },
+  "Loganlea station": {
+    "latitude": -28.1468,
+    "longitude": 153.3032
+  },
+  "Macquarie Ave at Lachlan Avenue": {
+    "latitude": -28.14375,
+    "longitude": 153.30125
+  },
+  "Main Beach": {
+    "latitude": -28.14615,
+    "longitude": 153.30385
+  },
+  "Main Beach Pde at Woodroffe Avenue": {
+    "latitude": -28.1408,
+    "longitude": 153.3042
+  },
+  "Main Beach station": {
+    "latitude": -28.14545,
+    "longitude": 153.31455
+  },
+  "Manly Dr near Pipers Pt": {
+    "latitude": -28.1497,
+    "longitude": 153.3003
+  },
+  "Manly Dr near Sandringham Dr": {
+    "latitude": -28.14955,
+    "longitude": 153.30545
+  },
+  "Marine Pde at Kirra Beach": {
+    "latitude": -28.14025,
+    "longitude": 153.30975
+  },
+  "Marine Pde at Kirra Beach Hotel": {
+    "latitude": -28.14135,
+    "longitude": 153.30865
+  },
+  "Markeri St at Ron Penhaligon Way": {
+    "latitude": -28.1402,
+    "longitude": 153.3098
+  },
+  "Markeri St near Allandale Ent": {
+    "latitude": -28.14405,
+    "longitude": 153.30595
+  },
+  "Markeri St near Drayton Tce": {
+    "latitude": -28.1436,
+    "longitude": 153.3114
+  },
+  "Markeri St near Intrepid Dr": {
+    "latitude": -28.1482,
+    "longitude": 153.3068
+  },
+  "Markeri St near Orpheus Rd": {
+    "latitude": -28.1445,
+    "longitude": 153.3005
+  },
+  "Markeri St near Rumrunner St": {
+    "latitude": -28.1425,
+    "longitude": 153.3025
+  },
+  "Markeri St near Southerly St": {
+    "latitude": -28.1499,
+    "longitude": 153.3051
+  },
+  "Markeri St near Sunshine Bvd": {
+    "latitude": -28.14035,
+    "longitude": 153.30965
+  },
+  "Marymount Catholic College": {
+    "latitude": -28.14115,
+    "longitude": 153.31385
+  },
+  "Marymount College": {
+    "latitude": -28.14415,
+    "longitude": 153.31085
+  },
+  "Mattocks Rd at Viburnum Street": {
+    "latitude": -28.1418,
+    "longitude": 153.3032
+  },
+  "McLean St at Queen Elizabeth Park": {
+    "latitude": -28.1445,
+    "longitude": 153.3105
+  },
+  "Mermaid Park": {
+    "latitude": -28.14975,
+    "longitude": 153.30525
+  },
+  "Miami Retirement Village": {
+    "latitude": -28.1499,
+    "longitude": 153.3001
+  },
+  "Mortensen Rd near Apricot Ave": {
+    "latitude": -28.14725,
+    "longitude": 153.30775
+  },
+  "Mudgereeba Shopping Centre": {
+    "latitude": -28.1421,
+    "longitude": 153.3029
+  },
+  "Murtha Dr at Boya Court": {
+    "latitude": -28.1451,
+    "longitude": 153.3099
+  },
+  "Murtha Dr at Dongarra Close": {
+    "latitude": -28.14945,
+    "longitude": 153.31055
+  },
+  "Murtha Dr at Myco Court": {
+    "latitude": -28.14645,
+    "longitude": 153.30355
+  },
+  "Murtha Dr at Swanbourne Way": {
+    "latitude": -28.14425,
+    "longitude": 153.30075
+  },
+  "Musgrave St at Coyne Street": {
+    "latitude": -28.1403,
+    "longitude": 153.3097
+  },
+  "Musgrave St at Kirra shops": {
+    "latitude": -28.14915,
+    "longitude": 153.31085
+  },
+  "Nerang Broadbeach Rd at Fairway Drive": {
+    "latitude": -28.14765,
+    "longitude": 153.30735
+  },
+  "Nerang Broadbeach Rd at Garden Grove": {
+    "latitude": -28.14035,
+    "longitude": 153.31465
+  },
+  "Nerang Broadbeach Rd at Lakes Esp": {
+    "latitude": -28.1433,
+    "longitude": 153.3017
+  },
+  "Nerang Broadbeach Rd at Lakeview Drive": {
+    "latitude": -28.14325,
+    "longitude": 153.31175
+  },
+  "Nerang Broadbeach Rd at Paradise Street": {
+    "latitude": -28.1445,
+    "longitude": 153.3055
+  },
+  "Nerang Broadbeach Rd at Rawle Court": {
+    "latitude": -28.1446,
+    "longitude": 153.3004
+  },
+  "Nerang Street": {
+    "latitude": -28.1406,
+    "longitude": 153.3044
+  },
+  "Nerang station": {
+    "latitude": -28.1435,
+    "longitude": 153.3065
+  },
+  "New St at Nerang Mall": {
+    "latitude": -28.1409,
+    "longitude": 153.3141
+  },
+  "Nineteenth Ave at Angelica Street": {
+    "latitude": -28.14925,
+    "longitude": 153.30075
+  },
+  "Nineteenth Ave at Elanora High School": {
+    "latitude": -28.1469,
+    "longitude": 153.3131
+  },
+  "Nineteenth Ave near Coolibah Dr": {
+    "latitude": -28.14445,
+    "longitude": 153.30555
+  },
+  "Nineteenth Ave near Mallawa Dr": {
+    "latitude": -28.1494,
+    "longitude": 153.3106
+  },
+  "Nineteenth Avenue": {
+    "latitude": -28.1435,
+    "longitude": 153.3115
+  },
+  "Nobby Beach shops": {
+    "latitude": -28.14965,
+    "longitude": 153.30035
+  },
+  "Northcliffe": {
+    "latitude": -28.1464,
+    "longitude": 153.3036
+  },
+  "Numeralla Ave near Talofa St": {
+    "latitude": -28.14795,
+    "longitude": 153.30705
+  },
+  "Oceanic Dr near Bowline Rd": {
+    "latitude": -28.14475,
+    "longitude": 153.30025
+  },
+  "Old Burleigh Rd at Britannia Avenue": {
+    "latitude": -28.1409,
+    "longitude": 153.3091
+  },
+  "Old Burleigh Rd at Fern Street": {
+    "latitude": -28.14015,
+    "longitude": 153.30985
+  },
+  "Old Burleigh Rd at First Avenue": {
+    "latitude": -28.1456,
+    "longitude": 153.3094
+  },
+  "Old Burleigh Rd at Kurrawa SLSC": {
+    "latitude": -28.14925,
+    "longitude": 153.31075
+  },
+  "Old Burleigh Rd at Queensland Avenue": {
+    "latitude": -28.14895,
+    "longitude": 153.30605
+  },
+  "Old Coach Rd at Mudgeeraba State School": {
+    "latitude": -28.1469,
+    "longitude": 153.3031
+  },
+  "Old Coach Rd at Sid Bigg Park": {
+    "latitude": -28.1432,
+    "longitude": 153.3018
+  },
+  "Old Coach Rd at Wallandra Road": {
+    "latitude": -28.1403,
+    "longitude": 153.3147
+  },
+  "Old Coach Rd near Bridgman Dr": {
+    "latitude": -28.14855,
+    "longitude": 153.31145
+  },
+  "Pacific Fair, stop A": {
+    "latitude": -28.1487,
+    "longitude": 153.3113
+  },
+  "Pacific Fair, stop B": {
+    "latitude": -28.1435,
+    "longitude": 153.3115
+  },
+  "Pacific Fair, stop C": {
+    "latitude": -28.14765,
+    "longitude": 153.30235
+  },
+  "Pacific Pde at Currumbin Beach": {
+    "latitude": -28.1464,
+    "longitude": 153.3036
+  },
+  "Palm Beach": {
+    "latitude": -28.14985,
+    "longitude": 153.31015
+  },
+  "Palm Beach Currumbin High School": {
+    "latitude": -28.14965,
+    "longitude": 153.31035
+  },
+  "Pimpama": {
+    "latitude": -28.1464,
+    "longitude": 153.3136
+  },
+  "Price St at Earle Plaza": {
+    "latitude": -28.1424,
+    "longitude": 153.3126
+  },
+  "Price St at Nerang State School": {
+    "latitude": -28.1417,
+    "longitude": 153.3083
+  },
+  "Pyrmont St near Cottesloe Dr": {
+    "latitude": -28.1454,
+    "longitude": 153.3146
+  },
+  "Queen Street station (Southport)": {
+    "latitude": -28.14965,
+    "longitude": 153.30035
+  },
+  "Rainbow Dr near Cobai Dr": {
+    "latitude": -28.1496,
+    "longitude": 153.3104
+  },
+  "Reedy Creek Rd at Ambassador Drive": {
+    "latitude": -28.14385,
+    "longitude": 153.31115
+  },
+  "Reedy Creek Rd at Executive Drive": {
+    "latitude": -28.14285,
+    "longitude": 153.30715
+  },
+  "Remembrance Dr at Bruce Bishop Car Park": {
+    "latitude": -28.14515,
+    "longitude": 153.31485
+  },
+  "Remembrance Dr at Markwell Avenue": {
+    "latitude": -28.14215,
+    "longitude": 153.30785
+  },
+  "Remembrance Drive at Surfers Paradise Bvd": {
+    "latitude": -28.14125,
+    "longitude": 153.30375
+  },
+  "Rio Vista Bvd at Sheridan Park Avenue": {
+    "latitude": -28.1481,
+    "longitude": 153.3069
+  },
+  "Rio Vista Bvd near Barrier Reef Dr": {
+    "latitude": -28.1424,
+    "longitude": 153.3026
+  },
+  "Rio Vista Bvd near Compass Ct": {
+    "latitude": -28.1454,
+    "longitude": 153.3096
+  },
+  "Rio Vista Bvd near Cottesloe Dr": {
+    "latitude": -28.1422,
+    "longitude": 153.3128
+  },
+  "Rio Vista Bvd near Crestmore Ct": {
+    "latitude": -28.1481,
+    "longitude": 153.3019
+  },
+  "Rio Vista Bvd near Dunlop Ct": {
+    "latitude": -28.1421,
+    "longitude": 153.3029
+  },
+  "Rio Vista Bvd near Karabella Ct": {
+    "latitude": -28.1418,
+    "longitude": 153.3032
+  },
+  "Rio Vista Bvd near Pilot Ct": {
+    "latitude": -28.145,
+    "longitude": 153.305
+  },
+  "Rio Vista Bvd near Southerly St": {
+    "latitude": -28.14415,
+    "longitude": 153.31085
+  },
+  "Rio Vista Bvd near Wayfarer Ave": {
+    "latitude": -28.14105,
+    "longitude": 153.30895
+  },
+  "Riverside Home Caravan Park": {
+    "latitude": -28.1413,
+    "longitude": 153.3037
+  },
+  "Robina": {
+    "latitude": -28.1408,
+    "longitude": 153.3092
+  },
+  "Robina Town Centre": {
+    "latitude": -28.14035,
+    "longitude": 153.31465
+  },
+  "Robina Town Centre Dr at Christine Avenue": {
+    "latitude": -28.1493,
+    "longitude": 153.3007
+  },
+  "Robina station": {
+    "latitude": -28.1468,
+    "longitude": 153.3032
+  },
+  "Robina station, stop A": {
+    "latitude": -28.14435,
+    "longitude": 153.31065
+  },
+  "Robina station, stop B": {
+    "latitude": -28.1434,
+    "longitude": 153.3116
+  },
+  "Robina station, stop C": {
+    "latitude": -28.1473,
+    "longitude": 153.3127
+  },
+  "Robina station, stop D": {
+    "latitude": -28.14365,
+    "longitude": 153.31135
+  },
+  "Roma Street": {
+    "latitude": -28.1455,
+    "longitude": 153.3145
+  },
+  "Ron Penhaligon Way near Essendon Pl": {
+    "latitude": -28.1453,
+    "longitude": 153.3047
+  },
+  "Ron Penhaligon Way near Great Southern Dr": {
+    "latitude": -28.1439,
+    "longitude": 153.3111
+  },
+  "Ron Penhaligon Way near Homebush Dr": {
+    "latitude": -28.1489,
+    "longitude": 153.3061
+  },
+  "Ron Penhaligon Way near Markeri St": {
+    "latitude": -28.1472,
+    "longitude": 153.3128
+  },
+  "Ron Penhaligon Way near Vaucluse Pl": {
+    "latitude": -28.15,
+    "longitude": 153.31
+  },
+  "SBL DH Stop1": {
+    "latitude": -28.14235,
+    "longitude": 153.30265
+  },
+  "Salerno St at Fiesta Avenue": {
+    "latitude": -28.1408,
+    "longitude": 153.3092
+  },
+  "Sarawak Ave at Salk Oval": {
+    "latitude": -28.14095,
+    "longitude": 153.31405
+  },
+  "Scarborough St at Southport Transit Centre": {
+    "latitude": -28.14465,
+    "longitude": 153.30035
+  },
+  "Scarborough St at White Street": {
+    "latitude": -28.1469,
+    "longitude": 153.3081
+  },
+  "Scenic Dr near Simpson Dr": {
+    "latitude": -28.14485,
+    "longitude": 153.30015
+  },
+  "Scottsdale Dr at Christine Avenue": {
+    "latitude": -28.1441,
+    "longitude": 153.3059
+  },
+  "Scottsdale Dr at Firebird Street": {
+    "latitude": -28.14795,
+    "longitude": 153.30705
+  },
+  "Scottsdale Dr at Laurel Oak Drive": {
+    "latitude": -28.1408,
+    "longitude": 153.3092
+  },
+  "Scottsdale Dr near Reedy Creek Rd": {
+    "latitude": -28.1472,
+    "longitude": 153.3028
+  },
+  "Sea World": {
+    "latitude": -28.1457,
+    "longitude": 153.3043
+  },
+  "Seaworld Dr at Mariners Cove": {
+    "latitude": -28.14535,
+    "longitude": 153.30465
+  },
+  "Seaworld Dr at Southport Yacht Club": {
+    "latitude": -28.14255,
+    "longitude": 153.30745
+  },
+  "Second Avenue": {
+    "latitude": -28.1465,
+    "longitude": 153.3035
+  },
+  "Second Avenue CLOSED until April 2026": {
+    "latitude": -28.14935,
+    "longitude": 153.31065
+  },
+  "Second Avenue CLOSED until mid-April 2026": {
+    "latitude": -28.14585,
+    "longitude": 153.30915
+  },
+  "Slatyer Ave at Corporate Court": {
+    "latitude": -28.1452,
+    "longitude": 153.3048
+  },
+  "Southport": {
+    "latitude": -28.14705,
+    "longitude": 153.31295
+  },
+  "Southport Medical Precinct": {
+    "latitude": -28.14915,
+    "longitude": 153.30585
+  },
+  "Southport Nerang Rd at Ashmore Road": {
+    "latitude": -28.1468,
+    "longitude": 153.3032
+  },
+  "Southport South": {
+    "latitude": -28.14565,
+    "longitude": 153.30435
+  },
+  "Southport bus station, stop A": {
+    "latitude": -28.1406,
+    "longitude": 153.3094
+  },
+  "Southport bus station, stop B": {
+    "latitude": -28.1431,
+    "longitude": 153.3019
+  },
+  "Station St at Centro Nerang": {
+    "latitude": -28.1461,
+    "longitude": 153.3039
+  },
+  "Stockland Burleigh Heads": {
+    "latitude": -28.1462,
+    "longitude": 153.3088
+  },
+  "Sunshine Bvd at Bordeaux Street": {
+    "latitude": -28.1488,
+    "longitude": 153.3062
+  },
+  "Sunshine Bvd at Gooding Park": {
+    "latitude": -28.1414,
+    "longitude": 153.3036
+  },
+  "Sunshine Bvd at Lindon Park": {
+    "latitude": -28.1482,
+    "longitude": 153.3118
+  },
+  "Sunshine Bvd at Surfers Avenue": {
+    "latitude": -28.14795,
+    "longitude": 153.30205
+  },
+  "Sunshine Bvd near Markeri St": {
+    "latitude": -28.14435,
+    "longitude": 153.30565
+  },
+  "Surf Pde at Broadbeach Mall": {
+    "latitude": -28.14255,
+    "longitude": 153.31245
+  },
+  "Surfers Paradise": {
+    "latitude": -28.1485,
+    "longitude": 153.3065
+  },
+  "Surfers Paradise (bus)": {
+    "latitude": -28.14255,
+    "longitude": 153.30245
+  },
+  "Surfers Paradise North": {
+    "latitude": -28.1497,
+    "longitude": 153.3003
+  },
+  "Tallebudgera Dr near Nyrang Ave": {
+    "latitude": -28.14265,
+    "longitude": 153.30235
+  },
+  "Tamborine Street": {
+    "latitude": -28.14325,
+    "longitude": 153.30175
+  },
+  "Teemangum St at Kropp Park": {
+    "latitude": -28.14105,
+    "longitude": 153.31395
+  },
+  "The Pines Shopping Centre, stop A": {
+    "latitude": -28.14165,
+    "longitude": 153.31335
+  },
+  "The Pines Shopping Centre, stop B": {
+    "latitude": -28.14865,
+    "longitude": 153.30135
+  },
+  "Thomas Dr near Burra St": {
+    "latitude": -28.1492,
+    "longitude": 153.3058
+  },
+  "Thrower Dr near Luzon Pde": {
+    "latitude": -28.1498,
+    "longitude": 153.3052
+  },
+  "Thrower Dr near Sarawak Ave": {
+    "latitude": -28.141,
+    "longitude": 153.309
+  },
+  "Thrower Dr near Sarawak Dr": {
+    "latitude": -28.1407,
+    "longitude": 153.3043
+  },
+  "Townson Ave near Boodera St": {
+    "latitude": -28.1487,
+    "longitude": 153.3063
+  },
+  "Townson Ave near Nineteenth Ave": {
+    "latitude": -28.1496,
+    "longitude": 153.3004
+  },
+  "Townson Ave near Twentyfourth Ave": {
+    "latitude": -28.14965,
+    "longitude": 153.30035
+  },
+  "Tullamarine Dr near Moorabbin Pl": {
+    "latitude": -28.1444,
+    "longitude": 153.3006
+  },
+  "Tweed St at George St": {
+    "latitude": -28.14995,
+    "longitude": 153.31005
+  },
+  "Tweed St at George St (night closures 8th Feb-2nd Mar)": {
+    "latitude": -28.1482,
+    "longitude": 153.3018
+  },
+  "Tweed St at George Street": {
+    "latitude": -28.14185,
+    "longitude": 153.30815
+  },
+  "Twenty Seventh Avenue": {
+    "latitude": -28.14615,
+    "longitude": 153.30885
+  },
+  "Twin Towns Services Club": {
+    "latitude": -28.1409,
+    "longitude": 153.3041
+  },
+  "University Dr near Cottesloe Dr": {
+    "latitude": -28.1432,
+    "longitude": 153.3018
+  },
+  "University Dr near Hillridge Cr": {
+    "latitude": -28.1488,
+    "longitude": 153.3062
+  },
+  "University Dr near Shore Ave": {
+    "latitude": -28.1449,
+    "longitude": 153.3101
+  },
+  "University Dr near Varsity Pde": {
+    "latitude": -28.1461,
+    "longitude": 153.3139
+  },
+  "Unknown": {
+    "latitude": -28.1454,
+    "longitude": 153.3146
+  },
+  "Varsity Lakes": {
+    "latitude": -28.14465,
+    "longitude": 153.30535
+  },
+  "Varsity Lakes station": {
+    "latitude": -28.14425,
+    "longitude": 153.31075
+  },
+  "Varsity Pde at Assembly Drive": {
+    "latitude": -28.14125,
+    "longitude": 153.30375
+  },
+  "Varsity Pde at Lakefront Crescent": {
+    "latitude": -28.14625,
+    "longitude": 153.31375
+  },
+  "Varsity Pde near University Dr": {
+    "latitude": -28.1458,
+    "longitude": 153.3092
+  },
+  "Varsity Sound Ave near Azzurra Dr": {
+    "latitude": -28.1416,
+    "longitude": 153.3034
+  },
+  "Via Roma near Hobgen St": {
+    "latitude": -28.148,
+    "longitude": 153.302
+  },
+  "Ware Dr near Aethalia St": {
+    "latitude": -28.14715,
+    "longitude": 153.31285
+  },
+  "Ware Dr near Tudor St": {
+    "latitude": -28.14445,
+    "longitude": 153.30055
+  },
+  "Warrungen Way near Mowla Dr": {
+    "latitude": -28.1414,
+    "longitude": 153.3086
+  },
+  "Waverly Dr at Rifle Range Road": {
+    "latitude": -28.1473,
+    "longitude": 153.3027
+  },
+  "Weedons Rd at Nerang High School": {
+    "latitude": -28.1473,
+    "longitude": 153.3027
+  },
+  "West Burleigh Rd at Dunlin Drive": {
+    "latitude": -28.1445,
+    "longitude": 153.3005
+  },
+  "West Burleigh Rd at George Street West": {
+    "latitude": -28.1499,
+    "longitude": 153.3001
+  },
+  "West Burleigh Rd at Stanley Street": {
+    "latitude": -28.14285,
+    "longitude": 153.30215
+  },
+  "Wharf St at Tweed Heads": {
+    "latitude": -28.1437,
+    "longitude": 153.3063
+  },
+  "Wharf St at Tweed Mall": {
+    "latitude": -28.14545,
+    "longitude": 153.31455
+  },
+  "Whistler Dr near Caningeraba State School": {
+    "latitude": -28.14675,
+    "longitude": 153.31325
+  },
+  "Willow St near Eucalyptus Ave": {
+    "latitude": -28.14865,
+    "longitude": 153.30635
+  },
+  "Willow St near Wattle St": {
+    "latitude": -28.14235,
+    "longitude": 153.30765
+  },
+  "Wilston": {
+    "latitude": -28.1472,
+    "longitude": 153.3128
+  },
+  "Worongary Rd near Mudgeeraba Rd hail 'n' ride": {
+    "latitude": -28.15,
+    "longitude": 153.305
+  },
+  "Yodelay St at Tracey Crescent": {
+    "latitude": -28.14255,
+    "longitude": 153.30745
+  },
+  "Yodelay St near Babu St": {
+    "latitude": -28.14025,
+    "longitude": 153.30975
+  },
+  "Yodelay St near Gainborough Dr": {
+    "latitude": -28.14125,
+    "longitude": 153.31375
+  },
+  "Yodelay St near Gainsborough Dr": {
+    "latitude": -28.14095,
+    "longitude": 153.30905
+  }
+}

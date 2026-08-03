@@ -1,6 +1,6 @@
 # Bus Network Dashboard
 
-Quick starter for an interactive Bus Network dashboard (Plotly Dash).
+A map-first interactive explorer for the Southern Gold Coast bus corridor, built with Plotly Dash.
 
 Setup
 
