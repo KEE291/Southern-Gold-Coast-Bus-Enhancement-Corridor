@@ -228,7 +228,10 @@ def build_map_data(dff, route_order, stop_lookup):
         location = stop_lookup.get(row['stop_name'])
         if location is None:
             continue
-        route_ids = sorted(dff.loc[dff['stop_id'] == row['stop_id'], 'route_id'].dropna().astype(str).unique())
+        route_ids = sorted(
+            r for r in dff.loc[dff['stop_id'] == row['stop_id'], 'route_id'].dropna().astype(str).unique()
+            if str(r).strip()
+        )
         map_points.append({
             'stop_id': row['stop_id'],
             'stop_name': row['stop_name'],
@@ -281,17 +284,7 @@ def make_kpi(title, value='', id=None):
 def build_map_figure(map_df, route_lines, selected_stop=None):
     fig = go.Figure()
 
-    for route in route_lines:
-        fig.add_trace(go.Scattermapbox(
-            lat=route['lat'],
-            lon=route['lon'],
-            mode='lines',
-            line={'width': 4, 'color': '#2563eb', 'dash': 'solid'},
-            hovertext=f"Route {route['route_id']} — {route['direction']}",
-            hoverinfo='text',
-            opacity=0.75,
-            showlegend=False,
-        ))
+    # hide route lines to reduce clutter and keep only stops visible
 
     if not map_df.empty:
         customdata = list(zip(map_df['stop_id'], map_df['passengers'], map_df['boardings'], map_df['alightings'], map_df['routes'], map_df['route_ids']))
